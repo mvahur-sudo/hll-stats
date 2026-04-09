@@ -102,3 +102,10 @@ async function fetchMapGames(mapName) {
   const res = await fetch(API_BASE + `/api/maps/${encodeURIComponent(mapName)}/games`);
   return handleJsonResponse(res);
 }
+
+// --- MAP STATS ---
+
+async function fetchMapStats() {
+  const res = await fetch(API_BASE + '/api/stats/maps');
+  return handleJsonResponse(res);
+}
