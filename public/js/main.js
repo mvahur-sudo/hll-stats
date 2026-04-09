@@ -486,9 +486,85 @@ function computeFastestCreatedGap(games) {
   return best.prev && best.next ? best : null;
 }
 
-function renderRecordMapLink(mapName) {
-  if (!mapName) return '';
-  return `<button type="button" class="player-link record-map-link" data-map-name="${mapName}">${mapName}</button>`;
+function renderRecordGameLink(mapName, gameId) {
+  if (!mapName || !gameId) return mapName || '';
+  return `<button type="button" class="player-link record-map-link" data-game-id="${gameId}">${mapName}</button>`;
+}
+
+async function openGameOverlay(gameId) {
+  const modal = document.getElementById('playerModal');
+  const titleEl = document.getElementById('playerModalTitle');
+  const bodyEl = document.getElementById('playerModalBody');
+  const closeBackdrop = document.getElementById('playerModalClose');
+  const closeX = document.getElementById('playerModalX');
+  if (!modal || !titleEl || !bodyEl) return;
+
+  const close = () => modal.classList.add('hidden');
+  closeBackdrop?.addEventListener('click', close, { once: true });
+  closeX?.addEventListener('click', close, { once: true });
+
+  modal.classList.remove('hidden');
+  titleEl.textContent = `Mängu detailid`;
+  bodyEl.innerHTML = 'Laen...';
+
+  try {
+    const [games, entries] = await Promise.all([fetchGames(), fetchEntries(gameId)]);
+    const game = (games || []).find(g => String(g.id) === String(gameId));
+    if (!game) throw new Error('Mängu ei leitud');
+
+    let maxLongest = 0;
+    (entries || []).forEach(e => {
+      const lk = Number(e.longest_kill) || 0;
+      if (lk > maxLongest) maxLongest = lk;
+    });
+
+    const rows = (entries || []).map(e => {
+      const kills = Number(e.kills) || 0;
+      const outposts = Number(e.outposts) || 0;
+      const garrisons = Number(e.garrisons) || 0;
+      const longest = Number(e.longest_kill) || 0;
+      const bonus = maxLongest > 0 && longest === maxLongest ? 1 : 0;
+      const score = kills + outposts * 3 + garrisons * 6 + bonus;
+      return { ...e, kills, outposts, garrisons, longest_kill: longest, bonus, score };
+    }).sort((a, b) => b.score - a.score || b.kills - a.kills || a.player_name.localeCompare(b.player_name));
+
+    const totals = rows.reduce((acc, row) => {
+      acc.kills += row.kills;
+      acc.outposts += row.outposts;
+      acc.garrisons += row.garrisons;
+      acc.score += row.score;
+      return acc;
+    }, { kills: 0, outposts: 0, garrisons: 0, score: 0 });
+
+    bodyEl.innerHTML = `
+      <div class="map-overlay-grid">
+        <section class="map-panel map-panel--full">
+          <div class="map-stats-bar">
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${game.map_name || game.name || 'Mäng'}</div><div class="map-stats-bar__label">Kaart</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${game.result === 'win' ? 'Võit' : game.result === 'loss' ? 'Kaotus' : '–'}</div><div class="map-stats-bar__label">Tulemus</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${totals.kills}</div><div class="map-stats-bar__label">Kills</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${totals.outposts}</div><div class="map-stats-bar__label">OP</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${totals.garrisons}</div><div class="map-stats-bar__label">Gar</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${totals.score}</div><div class="map-stats-bar__label">Score</div></div>
+          </div>
+          <div class="map-last-played">${formatGameLabel(game)}</div>
+        </section>
+        <section class="map-panel map-panel--full">
+          <div class="map-section-title">Selle mängu tulemused</div>
+          <div class="overlay-table-wrap">
+            <table class="overlay-table">
+              <thead><tr><th>#</th><th>Mängija</th><th>Kills</th><th>OP</th><th>Gar</th><th>Longest</th><th>Boonus</th><th>Score</th></tr></thead>
+              <tbody>
+                ${rows.map((row, idx) => `<tr><td>${idx + 1}</td><td>${row.player_name}</td><td>${row.kills}</td><td>${row.outposts}</td><td>${row.garrisons}</td><td>${row.longest_kill}</td><td>${row.bonus}</td><td>${row.score}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    `;
+  } catch (err) {
+    bodyEl.innerHTML = `Viga mängu detaili laadimisel: ${err?.message || err}`;
+  }
 }
 
 function renderStatsRecords(records, overall) {
@@ -532,23 +608,23 @@ function renderStatsRecords(records, overall) {
   const items = [];
   if (records.kills) {
     items.push({ label: "Kõige rohkem kille",
-      text: `${records.kills.player_name} – ${records.kills.value} killi (${renderRecordMapLink(records.kills.map_name)}, ${formatDate(records.kills.created_at)})` });
+      text: `${records.kills.player_name} – ${records.kills.value} killi (${renderRecordGameLink(records.kills.map_name, records.kills.game_id)}, ${formatDate(records.kills.created_at)})` });
   }
   if (records.outposts) {
     items.push({ label: "Kõige rohkem outposte",
-      text: `${records.outposts.player_name} – ${records.outposts.value} outposti (${renderRecordMapLink(records.outposts.map_name)}, ${formatDate(records.outposts.created_at)})` });
+      text: `${records.outposts.player_name} – ${records.outposts.value} outposti (${renderRecordGameLink(records.outposts.map_name, records.outposts.game_id)}, ${formatDate(records.outposts.created_at)})` });
   }
   if (records.garrisons) {
     items.push({ label: "Kõige rohkem garrisone",
-      text: `${records.garrisons.player_name} – ${records.garrisons.value} garrisonit (${renderRecordMapLink(records.garrisons.map_name)}, ${formatDate(records.garrisons.created_at)})` });
+      text: `${records.garrisons.player_name} – ${records.garrisons.value} garrisonit (${renderRecordGameLink(records.garrisons.map_name, records.garrisons.game_id)}, ${formatDate(records.garrisons.created_at)})` });
   }
   if (records.longest_kill) {
     items.push({ label: "Kõige kaugem kill",
-      text: `${records.longest_kill.player_name} – ${records.longest_kill.value} m (${renderRecordMapLink(records.longest_kill.map_name)}, ${formatDate(records.longest_kill.created_at)})` });
+      text: `${records.longest_kill.player_name} – ${records.longest_kill.value} m (${renderRecordGameLink(records.longest_kill.map_name, records.longest_kill.game_id)}, ${formatDate(records.longest_kill.created_at)})` });
   }
   if (records.score) {
     items.push({ label: "Suurim punktisumma",
-      text: `${records.score.player_name} – ${records.score.value} punkti (${renderRecordMapLink(records.score.map_name)}, ${formatDate(records.score.created_at)})` });
+      text: `${records.score.player_name} – ${records.score.value} punkti (${renderRecordGameLink(records.score.map_name, records.score.game_id)}, ${formatDate(records.score.created_at)})` });
   }
 
   /* ✅ UUS: kõige lühem vahe kahe järjestikuse mängu loomise vahel */
@@ -586,11 +662,9 @@ function renderStatsRecords(records, overall) {
 
 statsPlayersEl.appendChild(ul);
 
-statsPlayersEl.querySelectorAll('[data-map-name]').forEach(btn => {
+statsPlayersEl.querySelectorAll('[data-game-id]').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (typeof openMapOverlay === 'function') {
-      openMapOverlay(btn.dataset.mapName);
-    }
+    openGameOverlay(btn.dataset.gameId);
   });
 });
 }
