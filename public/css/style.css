@@ -531,3 +531,88 @@ button[tabindex="-1"] { outline: none; }
 }
 .overlay-row-date   { font-variant-numeric: tabular-nums; color: var(--text); }
 .overlay-row-result { font-weight: 600; white-space: nowrap; }
+.result-win   { color: #4ade80; }
+.result-loss  { color: var(--danger); }
+.result-none  { color: var(--text-dim); }
+
+/* --- Map overlay: stats bar --- */
+.map-stats-block {
+  background: rgba(31,41,55,0.3);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.map-stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: flex-start;
+}
+
+.map-stats-bar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 56px;
+}
+
+.map-stats-bar__value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f9fafb;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-stats-bar__label {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 1px;
+}
+
+.map-section-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.4rem;
+}
+
+.map-players-section { margin-top: 0.6rem; }
+.map-players-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+.map-player-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border-dim);
+  font-size: 0.78rem;
+}
+.map-player-chip--top {
+  border-color: rgba(250,204,21,0.5);
+  background: rgba(250,204,21,0.08);
+}
+.map-player-chip__badge { font-size: 0.85rem; }
+.map-player-chip__name { font-weight: 600; color: var(--text); }
+.map-player-chip__detail { color: var(--text-dim); font-size: 0.73rem; }
+
+.map-last-played {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Mobile adjustments for overlay */
+@media (max-width: 480px) {
+  .map-stats-bar { gap: 0.4rem 0.6rem; }
+  .map-stats-bar__item { min-width: 44px; }
+  .map-stats-bar__value { font-size: 0.9rem; }
+}
