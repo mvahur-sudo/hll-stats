@@ -781,6 +781,30 @@ if (addPlayerBtn) {
   });
 }
 
+if (rosterList) {
+  rosterList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.roster-remove');
+    if (!btn) return;
+
+    const playerId = btn.dataset.playerId;
+    const playerName = btn.dataset.playerName || 'see mängija';
+    if (!playerId) return;
+
+    const ok = confirm(`Kas eemaldada ${playerName} rosterist? Ajalooline statistika jääb alles.`);
+    if (!ok) return;
+
+    try {
+      if (typeof deletePlayer !== 'function') return;
+      await deletePlayer(playerId);
+      await loadPlayers();
+      showToast(`${playerName} eemaldati rosterist. Statistika jäi alles.`, 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Mängija eemaldamine rosterist ebaõnnestus: ' + (err?.message || err), 'error', 5000);
+    }
+  });
+}
+
 // Lisa mängija PRAEGUSESSE mängu (säilitame muude ridade sisestused)
 if (addGamePlayerBtn && tbody) {
   addGamePlayerBtn.addEventListener("click", async () => {
