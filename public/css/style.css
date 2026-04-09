@@ -252,13 +252,53 @@ button[tabindex="-1"] { outline: none; }
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 1rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1.15rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgba(55,65,81,0.45);
 }
 .add-to-game-row input[type="text"] { min-width: 10rem; }
 .current-game-info { font-size: 0.8rem; color: var(--text-dim); margin-top: 0.25rem; }
 .card-footer-right { display: flex; justify-content: flex-end; margin-top: 1rem; }
 
-@media (max-width: 640px) { .save-bar { align-items: flex-start; flex-direction: column; } }
+.roster-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+#rosterList {
+  margin-top: 0.5rem;
+}
+
+.card > .table-wrap + .card {
+  margin-top: 1.35rem;
+}
+
+.table-wrap + .card {
+  position: relative;
+  padding-top: 1.15rem;
+}
+
+.table-wrap + .card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  right: 1rem;
+  border-top: 1px solid rgba(55,65,81,0.45);
+}
+
+.table-wrap + .card h2 {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+  .save-bar { align-items: flex-start; flex-direction: column; }
+  .table-wrap + .card { margin-top: 1rem; }
+}
 
 /* --- Stats cards --- */
 .stats-card {
@@ -347,14 +387,6 @@ button[tabindex="-1"] { outline: none; }
 #statsPlayers .record-value { font-weight: 600; color: var(--text); }
 
 /* --- Roster --- */
-.roster-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.85rem;
-}
 .roster-list { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .roster-pill {
   display: inline-flex;
