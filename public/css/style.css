@@ -1,54 +1,89 @@
-/* ===========================
-   ÜLDINE LAYOUT & TEMAATIKA
-   =========================== */
+/* ============================================================
+   HLL Stats — Unified stylesheet
+   ============================================================ */
+
+/* --- Variables --- */
 :root {
-  /* vasak veerg (kaardi nimi / mängija nimi vms) */
-  --stats-left-width: 200px;
+  --bg:          #020617;
+  --bg-page:     #0b1120;
+  --bg-dark:     #000;
+  --border:      #1f2937;
+  --border-dim:  #374151;
+  --text:        #e5e7eb;
+  --text-dim:    #9ca3af;
+  --text-muted:  #6b7280;
+  --accent:      #2dd4bf;
+  --accent-2:    #22c55e;
+  --accent-3:    #38bdf8;
+  --danger:      #f97373;
+  --danger-dark: #b91c1c;
+  --warn:        #f59e0b;
+
+  --radius-sm: 0.4rem;
+  --radius-md: 0.6rem;
+  --radius-lg: 0.9rem;
+  --radius-xl: 1rem;
+
+  --shadow-card: 0 16px 40px rgba(15,23,42,0.5);
+  --shadow-modal: 0 24px 60px rgba(0,0,0,0.6);
+
+  --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/* --- Reset --- */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
 body {
-  background: radial-gradient(circle at top, #0b1120 0, #020617 45%, #000 100%);
-  color: #e5e7eb;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, var(--bg-page) 0%, var(--bg) 45%, var(--bg-dark) 100%);
+  color: var(--text);
+  font-family: var(--font);
   font-size: 14px;
 }
 
-.container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem 3rem; }
+/* --- Layout --- */
+.container {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1rem 3rem;
+}
 
-/* ===========================
-   PEALKIRJAD
-   =========================== */
+/* --- Headings --- */
 h1 { font-size: 1.6rem; margin-bottom: 1.5rem; text-align: center; }
+h2, h3 { margin-top: 0; }
 
-/* ===========================
-   KAARDID / GRID
-   =========================== */
+/* --- Cards --- */
 .card {
-  background: #020617;
-  border-radius: 0.9rem;
-  border: 1px solid #1f2937;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 0.9rem 1rem;
   margin-bottom: 1rem;
-  box-shadow: 0 16px 40px rgba(15,23,42,0.5);
+  box-shadow: var(--shadow-card);
 }
-.card h2, .card h3 { margin-top: 0; margin-bottom: 0.75rem; font-size: 1rem; }
+.card h2, .card h3 { margin-bottom: 0.75rem; font-size: 1rem; }
 
+/* --- Grids --- */
 .top-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
 }
-@media (max-width: 800px) {
-  .top-grid { grid-template-columns: minmax(0, 1fr); }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
 }
 
-/* ===========================
-   FORMID
-   =========================== */
+.stats { margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+.stats h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+
+@media (max-width: 900px) { .stats-grid { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .top-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* --- Forms --- */
 .form-row {
   display: flex;
   flex-wrap: wrap;
@@ -60,87 +95,82 @@ h1 { font-size: 1.6rem; margin-bottom: 1.5rem; text-align: center; }
 
 .form-row select,
 .form-row input[type="text"],
-.form-row input[type="number"] {
-  background: #020617;
-  border: 1px solid #374151;
-  border-radius: 0.4rem;
+.form-row input[type="number"],
+input[type="text"] {
+  background: var(--bg);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
   padding: 0.25rem 0.5rem;
-  color: #e5e7eb;
+  color: var(--text);
   font-size: 0.85rem;
 }
+input[type="text"]:focus { outline: 1px solid var(--accent); }
 
-/* ===========================
-   NUPUD
-   =========================== */
+/* --- Buttons --- */
 .btn {
   border-radius: 999px;
   border: 1px solid transparent;
   padding: 0.3rem 0.9rem;
   font-size: 0.85rem;
-  cursor: pointer;
   font-weight: 500;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
   white-space: nowrap;
+  transition: filter 0.15s ease;
 }
-.btn-primary { background: linear-gradient(135deg, #2dd4bf, #22c55e); color: #020617; border-color: #064e3b; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--bg);
+  border-color: #064e3b;
+}
 .btn-primary:hover { filter: brightness(1.15); }
-.btn-secondary { background: #111827; border-color: #374151; color: #e5e7eb; }
-.btn-secondary:hover { background: #1f2937; }
-.btn-danger { background: linear-gradient(135deg, #f97373, #b91c1c); border-color: #7f1d1d; color: white; }
+
+.btn-secondary {
+  background: #111827;
+  border-color: var(--border-dim);
+  color: var(--text);
+}
+.btn-secondary:hover { background: var(--border); }
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--danger), var(--danger-dark));
+  border-color: #7f1d1d;
+  color: #fff;
+}
 .btn-danger:hover { filter: brightness(1.15); }
-button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
 
-/* ===========================
-   CURRENT GAME INFO / SAVE BAR
-   =========================== */
-.current-game-info { font-size: 0.8rem; color: #9ca3af; margin-top: 0.25rem; }
-
-.save-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
+.btn-saveall {
+  background: linear-gradient(135deg, var(--accent-3), #3b82f6);
+  color: var(--bg);
+  border: 1px solid #1e40af;
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
 }
-.save-hint { font-size: 0.8rem; color: #9ca3af; }
+.btn-saveall:hover { filter: brightness(1.15); }
 
-.add-to-game-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1rem;
-  margin-bottom: 0.75rem;
-}
-.add-to-game-row input[type="text"] { min-width: 10rem; }
+button { font-family: inherit; }
+button[tabindex="-1"] { outline: none; }
 
-@media (max-width: 640px) {
-  .save-bar { align-items: flex-start; flex-direction: column; }
-}
-
-/* ===========================
-   TABEL (scoresTable) – responsive/dünaamiline
-   =========================== */
-
-/* Wrapper: vajadusel horisontaalne scroll, kui ekraan liiga kitsas */
+/* --- Tables --- */
 .table-wrap {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Tabel: veerud jaotatakse kontrollitult (mitte sisu järgi) */
 .scores-table {
   width: 100%;
+  min-width: 760px;
   border-collapse: collapse;
   font-size: 0.8rem;
-  table-layout: fixed;   /* võtmerida: veerud muutuvad dünaamiliseks */
+  table-layout: fixed;
 }
 
-.scores-table thead { background: #020617; }
+.scores-table thead { background: var(--bg); }
 
 .scores-table th,
 .scores-table td {
@@ -150,13 +180,12 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
   vertical-align: top;
 }
 
-/* Päised ei tohi veerge laiaks suruda */
 .scores-table th {
   font-weight: 500;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #9ca3af;
+  color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -164,182 +193,92 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
 
 .scores-table tbody tr:hover { background: rgba(15,23,42,0.7); }
 
-/* --- Veergude proportsioonid (dünaamilised) --- */
-/* 1: # */
-.scores-table th:nth-child(1),
-.scores-table td:nth-child(1) { width: 3%; text-align: center; }
+/* Column widths — numbered */
+.scores-table th:nth-child(1), .scores-table td:nth-child(1) { width: 3%;  text-align: center; }
+.scores-table th:nth-child(2), .scores-table td:nth-child(2) { width: 8%; }
+.scores-table th:nth-child(3), .scores-table td:nth-child(3),
+.scores-table th:nth-child(4), .scores-table td:nth-child(4),
+.scores-table th:nth-child(5), .scores-table td:nth-child(5),
+.scores-table th:nth-child(6), .scores-table td:nth-child(6) { width: 9%; }
+.scores-table th:nth-child(7), .scores-table td:nth-child(7) { width: 8%; }
+.scores-table th:nth-child(8), .scores-table td:nth-child(8) { width: 8%; }
+.scores-table th:nth-child(9), .scores-table td:nth-child(9) { width: 5%;  text-align: center; }
 
-/* 2: Mängija */
-.scores-table th:nth-child(2),
-.scores-table td:nth-child(2) { width: 8%; }
-
-/* 3..6: numbriväljad */
-.scores-table th:nth-child(3),
-.scores-table td:nth-child(3),
-.scores-table th:nth-child(4),
-.scores-table td:nth-child(4),
-.scores-table th:nth-child(5),
-.scores-table td:nth-child(5),
-.scores-table th:nth-child(6),
-.scores-table td:nth-child(6) { width: 9%; }
-
-/* 7: Boonus */
-.scores-table th:nth-child(7),
-.scores-table td:nth-child(7) { width: 8%; }
-
-/* 8: Kokku */
-.scores-table th:nth-child(8),
-.scores-table td:nth-child(8) { width: 8%; }
-
-/* 9: kustuta nupp */
-.scores-table th:nth-child(9),
-.scores-table td:nth-child(9) { width: 5%; text-align: center; }
-
-/* Input: ei suru tabelit laiaks, vaid järgib veeru laiust */
+/* Inputs inside table */
 .score-input {
   width: 100%;
   min-width: 0;
-  max-width: 100%;
-  box-sizing: border-box;
-
-  background: #020617;
-  border: 1px solid #374151;
-  border-radius: 0.4rem;
+  background: var(--bg);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
   padding: 0.2rem 0.35rem;
-  color: #e5e7eb;
+  color: var(--text);
   font-size: 0.8rem;
+  box-sizing: border-box;
 }
 
-/* Kokku punktid */
 .total-cell { font-weight: 700; }
 
-/* Mobiilis: kompaktsem padding, font ja input */
+/* Mobile */
 @media (max-width: 640px) {
-  .scores-table { font-size: 0.75rem; }
-
-  .scores-table th,
-  .scores-table td {
-    padding: 0.25rem 0.3rem;
-  }
-
-  .score-input {
-    padding: 0.18rem 0.3rem;
-    font-size: 0.75rem;
-  }
+  .scores-table { min-width: 640px; font-size: 0.75rem; }
+  .scores-table th, .scores-table td { padding: 0.25rem 0.3rem; }
+  .score-input { padding: 0.18rem 0.3rem; font-size: 0.75rem; }
 }
 
-/* Väga kitsal ekraanil: peida “Kaugeim kill (m)” (vajadusel) */
 @media (max-width: 520px) {
   .scores-table th:nth-child(6),
-  .scores-table td:nth-child(6) {
-    display: none;
-  }
+  .scores-table td:nth-child(6) { display: none; }
 }
 
-/* Medalikohad & highlight */
+/* Ranks */
 .rank-1 { background: linear-gradient(90deg, rgba(250,204,21,0.25), rgba(24,24,27,0.2)); box-shadow: inset 1px 0 0 rgba(250,204,21,0.4); }
 .rank-2 { background: linear-gradient(90deg, rgba(148,163,184,0.2), rgba(24,24,27,0.2)); box-shadow: inset 1px 0 0 rgba(148,163,184,0.4); }
 .rank-3 { background: linear-gradient(90deg, rgba(244,114,182,0.18), rgba(24,24,27,0.2)); box-shadow: inset 1px 0 0 rgba(244,114,182,0.35); }
 .highlight { outline: 1px solid rgba(56,189,248,0.6); outline-offset: -1px; }
 
-/* Boonus-tag (vajadusel mujal) */
-.bonus-tag {
-  font-size: 0.7rem;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
-  border: 1px solid #22d3ee;
-  color: #e0f2fe;
-  background: radial-gradient(circle at top left, rgba(34,211,238,0.4), rgba(15,23,42,0.8));
+/* --- Save bar & add row --- */
+.save-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
 }
-
-
-/* ===========================
-   ROOSTER
-   =========================== */
-.roster-controls {
+.save-hint { font-size: 0.8rem; color: var(--text-dim); }
+.add-to-game-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 1rem;
   margin-bottom: 0.75rem;
-  font-size: 0.85rem;
 }
+.add-to-game-row input[type="text"] { min-width: 10rem; }
+.current-game-info { font-size: 0.8rem; color: var(--text-dim); margin-top: 0.25rem; }
+.card-footer-right { display: flex; justify-content: flex-end; margin-top: 1rem; }
 
-#newPlayerName {
-  background: #020617;
-  border: 1px solid #374151;
-  border-radius: 0.4rem;
-  padding: 0.25rem 0.5rem;
-  color: #e5e7eb;
-  font-size: 0.85rem;
-}
+@media (max-width: 640px) { .save-bar { align-items: flex-start; flex-direction: column; } }
 
-.roster-list { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-
-.roster-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: #020617;
-  border: 1px solid #374151;
-  font-size: 0.78rem;
-}
-
-.roster-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.roster-remove {
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  font-size: 0.75rem;
-  padding: 0;
-  line-height: 1;
-}
-.roster-remove:hover { color: #f97373; }
-
-/* ===========================
-   STATISTIKA ÜLDINE
-   =========================== */
-.stats { margin-top: 2.5rem; border-top: 1px solid #1f2937; padding-top: 1.5rem; }
-.stats h2 { font-size: 1.1rem; margin-bottom: 1rem; }
-
-/* 3 võrdset kaarti */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-@media (max-width: 900px) {
-  .stats-grid { grid-template-columns: 1fr; }
-}
-
+/* --- Stats cards --- */
 .stats-card {
-  background: #020617;
-  border-radius: 0.9rem;
-  border: 1px solid #1f2937;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 0.95rem 1.1rem;
   font-size: 0.86rem;
 }
-.stats-card h3 { margin-top: 0; margin-bottom: 0.75rem; font-size: 0.96rem; }
+.stats-card h3 { margin-bottom: 0.75rem; font-size: 0.96rem; }
 
-/* Üldine stats list (Maps/Players kasutavad ul/li) */
 .stats-section { font-size: 0.86rem; color: #d1d5db; line-height: 1.6; }
 .stats-section ul { list-style: none; padding-left: 0; margin: 0.6rem 0 0; }
-.stats-section li { margin-bottom: 0.35rem; border-radius: 0.5rem; }
-.stats-section li:nth-child(odd) { background: rgba(31,41,55,0.22); }
+.stats-section li { margin-bottom: 0.35rem; border-radius: var(--radius-md); }
+.stats-section li:nth-child(odd)  { background: rgba(31,41,55,0.22); }
 .stats-section li:nth-child(even) { background: rgba(2,6,23,0.22); }
 
-/* Neutraliseeri pill/badge ainult stats plokkides (Maps võib endiselt span class=stats-pill kasutada) */
-#statsMaps .pill,
-#statsWinners .pill,
-#statsPlayers .pill,
-#statsMaps .badge,
-#statsWinners .badge,
-#statsPlayers .badge {
+/* Reset pills/badges inside stats */
+#statsMaps .pill,   #statsWinners .pill,   #statsPlayers .pill,
+#statsMaps .badge,  #statsWinners .badge,  #statsPlayers .badge {
   background: none !important;
   border: 0 !important;
   padding: 0 !important;
@@ -348,22 +287,13 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
   color: inherit !important;
 }
 
-/* ===========================
-   KAARDI STATISTIKA – nimi keskel, tulemused all
-   =========================== */
-
-#statsMaps {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
+/* Map stats */
+#statsMaps { display: flex; flex-direction: column; gap: 0.4rem; }
 #statsMaps .map-stat {
-  padding: 0.3 0.5rem;
-  border-radius: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
   background: rgba(31,41,55,0.22);
 }
-
 #statsMaps .map-name {
   text-align: center;
   font-weight: 600;
@@ -371,7 +301,6 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
   font-size: 0.85rem;
   line-height: 1.2;
 }
-
 #statsMaps .map-results {
   margin-top: 0.1rem;
   text-align: center;
@@ -381,19 +310,8 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
   font-variant-numeric: tabular-nums;
 }
 
-/* Väiksematel ekraanidel vasak veerg kitsam (kui kunagi vaja kasutada) */
-@media (max-width: 520px) {
-  :root { --stats-left-width: 150px; }
-}
-
-/* ===========================
-   TOP PODIUM (PUHAS, GRID)
-   =========================== */
-#statsWinners {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
+/* Podium / winners */
+#statsWinners { display: flex; flex-direction: column; gap: 0.75rem; }
 
 #statsWinners .podium-title-row {
   display: grid;
@@ -401,24 +319,17 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
   align-items: baseline;
   column-gap: 0.5rem;
 }
+#statsWinners .podium-title { font-weight: 700; font-size: 0.9rem; color: #f9fafb; }
 
-#statsWinners .podium-title {
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: #f9fafb;
-}
-
-/* 🥇🥈🥉 + 🏆 (kompaktne) */
 #statsWinners .podium-medals-header {
   display: grid;
   grid-template-columns: 2rem 2rem 2rem 2.2rem;
   column-gap: 0.4rem;
   text-align: center;
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: var(--text-dim);
 }
 
-/* Nimi + 3 veergu + punktid */
 #statsWinners .podium-row {
   display: grid;
   grid-template-columns: 1fr 2rem 2rem 2rem 2.2rem;
@@ -426,47 +337,48 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
   font-size: 0.85rem;
   color: #d1d5db;
 }
+#statsWinners .podium-name  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#statsWinners .podium-col   { text-align: center; font-variant-numeric: tabular-nums; }
+#statsWinners .podium-total { text-align: center; font-weight: 600; color: #f9fafb; }
+#statsWinners .podium-empty { font-size: 0.75rem; color: var(--text-muted); }
 
-#statsWinners .podium-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Players records */
+#statsPlayers .record-label { color: var(--text-dim); font-weight: 500; }
+#statsPlayers .record-value { font-weight: 600; color: var(--text); }
+
+/* --- Roster --- */
+.roster-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
 }
-
-#statsWinners .podium-col {
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-#statsWinners .podium-total {
-  text-align: center;
-  font-weight: 600;
-  color: #f9fafb;
-}
-
-#statsWinners .podium-empty {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-/* ===========================
-   CARD FOOTER / SAVE ALL
-   =========================== */
-.card-footer-right { display: flex; justify-content: flex-end; margin-top: 1rem; }
-
-.btn-saveall {
-  background: linear-gradient(135deg, #38bdf8, #3b82f6);
-  color: #020617;
-  border: 1px solid #1e40af;
+.roster-list { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.roster-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  padding: 0.4rem 1rem;
-  transition: 0.15s ease;
+  background: var(--bg);
+  border: 1px solid var(--border-dim);
+  font-size: 0.78rem;
 }
-.btn-saveall:hover { filter: brightness(1.15); }
+.roster-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roster-remove {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0;
+  line-height: 1;
+}
+.roster-remove:hover { color: var(--danger); }
 
-/* ===========================
-   TOASTID
-   =========================== */
+/* --- Toasts --- */
 .toast-container {
   position: fixed;
   top: 12px;
@@ -479,7 +391,7 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
 .toast {
   min-width: 240px;
   max-width: 360px;
-  background: #1f2937;
+  background: var(--border);
   color: #fff;
   border-radius: 8px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.2);
@@ -493,7 +405,7 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
   transform: translateY(-6px);
   animation: toast-in 180ms ease-out forwards;
 }
-.toast.success { border-left: 4px solid #22c55e; }
+.toast.success { border-left: 4px solid var(--accent-2); }
 .toast.error   { border-left: 4px solid #ef4444; }
 .toast.info    { border-left: 4px solid #3b82f6; }
 
@@ -508,157 +420,11 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
 }
 .toast .toast-close:hover { color: #fff; }
 
-@keyframes toast-in { to { opacity: 1; transform: translateY(0); } }
+@keyframes toast-in  { to { opacity: 1; transform: translateY(0); } }
 @keyframes toast-out { to { opacity: 0; transform: translateY(-6px); } }
 .toast.hide { animation: toast-out 180ms ease-in forwards; }
 
-/* ===========================
-   SCORES TABLE – responsive
-   =========================== */
-
-.table-wrap {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* tabel ei lähe kunagi “kitsaks” */
-.scores-table {
-  width: 100%;
-  min-width: 760px;   /* desktop OK, mobiilis scroll */
-  border-collapse: collapse;
-}
-
-/* mobiilis kompaktsem */
-@media (max-width: 640px) {
-  .scores-table {
-    min-width: 640px;
-    font-size: 0.75rem;
-  }
-
-  .scores-table th,
-  .scores-table td {
-    padding: 0.25rem 0.3rem;
-  }
-
-  .score-input {
-    width: 56px;
-    font-size: 0.75rem;
-  }
-}
-
-/* Mängijate rekordid */
-#statsPlayers .record-label {
-  color: #9ca3af;
-  font-weight: 500;
-}
-
-#statsPlayers .record-value {
-  font-weight: 600;
-  color: #e5e7eb;
-}
-
-
-/* ===========================
-   MAP OVERLAY (modal)
-   =========================== */
-
-.overlay.hidden { display: none; }
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-}
-
-.overlay-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.65);
-  backdrop-filter: blur(3px);
-}
-
-.overlay-card {
-  position: relative;
-  z-index: 10001;
-  max-width: 620px;
-  width: calc(100% - 2rem);
-  margin: 5vh auto;
-  background: #020617;
-  border: 1px solid #1f2937;
-  border-radius: 1rem;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
-  overflow: hidden;
-}
-
-.overlay-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.9rem 1rem;
-  border-bottom: 1px solid #1f2937;
-}
-
-.overlay-header h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.overlay-close {
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  font-size: 1.4rem;
-  line-height: 1;
-}
-.overlay-close:hover { color: #fff; }
-
-.overlay-body {
-  padding: 1rem;
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.overlay-loading,
-.overlay-empty,
-.overlay-error {
-  font-size: 0.9rem;
-  color: #d1d5db;
-  padding: 0.25rem 0;
-}
-
-.overlay-error {
-  color: #fecaca;
-}
-
-.overlay-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.overlay-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 1rem;
-  align-items: center;
-  padding: 0.55rem 0.7rem;
-  border-radius: 0.6rem;
-  border: 1px solid rgba(55,65,81,0.4);
-  background: rgba(31,41,55,0.2);
-}
-
-.overlay-row-date {
-  font-variant-numeric: tabular-nums;
-  color: #e5e7eb;
-}
-
-.overlay-row-result {
-  font-weight: 600;
-  white-space: nowrap;
-}
-
+/* --- Modal --- */
 .modal.hidden { display: none; }
 .modal { position: fixed; inset: 0; z-index: 9998; display: grid; place-items: center; }
 .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.65); }
@@ -667,13 +433,19 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
   width: min(900px, 92vw);
   max-height: 85vh;
   overflow: auto;
-  background: #0b1220;
-  border: 1px solid #1f2937;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 16px 18px;
   box-shadow: 0 18px 60px rgba(0,0,0,0.5);
 }
-.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
 .modal-header h3 { margin: 0; font-size: 18px; }
 .player-link {
   background: transparent;
@@ -686,22 +458,76 @@ button[tabindex="-1"] { outline: none; } /* Tab-järjekorra hügieen */
 }
 .player-link:hover { text-decoration: underline; }
 
-/* Modal player stats tabel: dünaamiline layout */
+/* Player modal stats table */
 .player-stats-table {
   table-layout: auto !important;
   width: 100%;
 }
-
-/* Tee "Kaart" veerg laiemaks */
 .player-stats-table th:first-child,
-.player-stats-table td:first-child {
-  width: 45%;
-  min-width: 220px;
-}
-
-/* Numbriveerud (Mänge, Võite, Kaotusi, Kills...) ei murra ridu */
+.player-stats-table td:first-child { width: 45%; min-width: 220px; }
 .player-stats-table th:not(:first-child),
-.player-stats-table td:not(:first-child) {
-  white-space: nowrap;
-  width: 1%;
+.player-stats-table td:not(:first-child) { white-space: nowrap; width: 1%; }
+
+/* --- Map overlay --- */
+.overlay.hidden { display: none; }
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
 }
+.overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(3px);
+}
+.overlay-card {
+  position: relative;
+  z-index: 10001;
+  max-width: 620px;
+  width: calc(100% - 2rem);
+  margin: 5vh auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+}
+.overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.overlay-header h3 { margin: 0; font-size: 1rem; }
+.overlay-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.overlay-close:hover { color: #fff; }
+.overlay-body {
+  padding: 1rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.overlay-loading,
+.overlay-empty { font-size: 0.9rem; color: #d1d5db; padding: 0.25rem 0; }
+.overlay-error { font-size: 0.9rem; color: #fecaca; padding: 0.25rem 0; }
+.overlay-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.overlay-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(55,65,81,0.4);
+  background: rgba(31,41,55,0.2);
+}
+.overlay-row-date   { font-variant-numeric: tabular-nums; color: var(--text); }
+.overlay-row-result { font-weight: 600; white-space: nowrap; }
