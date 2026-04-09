@@ -100,6 +100,14 @@ h2, h3 { margin-top: 0; }
   margin-bottom: 0.75rem;
 }
 .form-row label { font-size: 0.85rem; }
+.form-row--warmup {
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+}
+.form-help {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
 
 .form-row select,
 .form-row input[type="text"],
