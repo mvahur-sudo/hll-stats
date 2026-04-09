@@ -273,31 +273,19 @@ button[tabindex="-1"] { outline: none; }
   margin-top: 0.5rem;
 }
 
-.card > .table-wrap + .card {
-  margin-top: 1.35rem;
+.section-divider {
+  height: 1px;
+  margin: 1.1rem 0 1.15rem;
+  background: linear-gradient(90deg, rgba(55,65,81,0), rgba(71,85,105,0.75), rgba(55,65,81,0));
 }
 
-.table-wrap + .card {
-  position: relative;
-  padding-top: 1.15rem;
-}
-
-.table-wrap + .card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 1rem;
-  right: 1rem;
-  border-top: 1px solid rgba(55,65,81,0.45);
-}
-
-.table-wrap + .card h2 {
+.roster-card h2 {
   margin-bottom: 1rem;
 }
 
 @media (max-width: 640px) {
   .save-bar { align-items: flex-start; flex-direction: column; }
-  .table-wrap + .card { margin-top: 1rem; }
+  .section-divider { margin: 0.9rem 0 1rem; }
 }
 
 /* --- Stats cards --- */
