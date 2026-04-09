@@ -767,59 +767,141 @@ async function openPlayerModal(playerName, windowKey) {
 
     const t = data.totals || {};
     const fastest = data.fastest;
+    const trend = data.trend_last_10 || {};
+    const maps = Array.isArray(data.maps) ? data.maps : [];
+    const bestByScore = Array.isArray(data.best_maps_by_score) ? data.best_maps_by_score : [];
+    const bestByWinrate = Array.isArray(data.best_maps_by_winrate) ? data.best_maps_by_winrate : [];
+    const profile = data.profile || {};
+    const achievements = data.achievements || {};
 
     const fastestHtml = fastest
       ? `<div><b>Kõige kiiremini mängitud kaart:</b> ${fastest.map_name} – aeg ${formatDuration(fastest.ms)}</div>`
       : `<div><b>Kõige kiiremini mängitud kaart:</b> –</div>`;
 
-    const maps = Array.isArray(data.maps) ? data.maps : [];
+    const renderMapRows = (rows, mode = 'default') => rows.map(m => `
+      <tr>
+        <td>${m.map_name}</td>
+        <td>${m.games}</td>
+        <td>${m.wins}</td>
+        <td>${m.losses}</td>
+        <td>${m.win_rate ?? 0}%</td>
+        <td>${mode === 'score' ? m.avg_score : m.avg_kills}</td>
+        <td>${mode === 'score' ? m.score : m.avg_outposts}</td>
+      </tr>
+    `).join("");
+
     const mapsHtml = maps.length
       ? `
-        <table class="scores-table player-stats-table" style="margin-top:12px;">
-          <thead>
-            <tr>
-              <th>Kaart</th>
-              <th>Mänge</th>
-              <th>Võite</th>
-              <th>Kaotusi</th>
-              <th>Kills</th>
-              <th>OP</th>
-              <th>Gar</th>
-              <th>Longest</th>
-              <th>Score</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${maps.map(m => `
+        <div class="overlay-table-wrap">
+          <table class="scores-table player-stats-table" style="margin-top:12px;">
+            <thead>
               <tr>
-                <td>${m.map_name}</td>
-                <td>${m.games}</td>
-                <td>${m.wins}</td>
-                <td>${m.losses}</td>
-                <td>${m.kills}</td>
-                <td>${m.outposts}</td>
-                <td>${m.garrisons}</td>
-                <td>${m.longest_kill}</td>
-                <td>${m.score}</td>
+                <th>Kaart</th>
+                <th>Mänge</th>
+                <th>Võite</th>
+                <th>Kaotusi</th>
+                <th>WR</th>
+                <th>Kills</th>
+                <th>OP</th>
+                <th>Gar</th>
+                <th>Longest</th>
+                <th>Score</th>
               </tr>
-            `).join("")}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${maps.map(m => `
+                <tr>
+                  <td>${m.map_name}</td>
+                  <td>${m.games}</td>
+                  <td>${m.wins}</td>
+                  <td>${m.losses}</td>
+                  <td>${m.win_rate ?? 0}%</td>
+                  <td>${m.kills}</td>
+                  <td>${m.outposts}</td>
+                  <td>${m.garrisons}</td>
+                  <td>${m.longest_kill}</td>
+                  <td>${m.score}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
       `
       : `<div style="margin-top:12px;">Selles perioodis pole selle mängija mänge.</div>`;
 
+    const achievementsHtml = [
+      achievements.highest_kills ? `<li><span class="record-label">Highest kills:</span> <span class="record-value">${achievements.highest_kills.value} (${achievements.highest_kills.map_name})</span></li>` : '',
+      achievements.most_outposts ? `<li><span class="record-label">Most outposts:</span> <span class="record-value">${achievements.most_outposts.value} (${achievements.most_outposts.map_name})</span></li>` : '',
+      achievements.most_garrisons ? `<li><span class="record-label">Most garrisons:</span> <span class="record-value">${achievements.most_garrisons.value} (${achievements.most_garrisons.map_name})</span></li>` : '',
+      achievements.longest_kill ? `<li><span class="record-label">Longest kill:</span> <span class="record-value">${achievements.longest_kill.value} m (${achievements.longest_kill.map_name})</span></li>` : '',
+      achievements.best_score ? `<li><span class="record-label">Best score:</span> <span class="record-value">${achievements.best_score.value} (${achievements.best_score.map_name})</span></li>` : '',
+      typeof achievements.best_win_streak === 'number' ? `<li><span class="record-label">Best win streak:</span> <span class="record-value">${achievements.best_win_streak}</span></li>` : ''
+    ].join('');
+
+    const formHtml = (trend.form || []).map(item => `<span class="map-form-pill map-form-pill--${item === 'W' ? 'win' : item === 'L' ? 'loss' : 'neutral'}">${item}</span>`).join('');
+
     bodyEl.innerHTML = `
-      <div style="display:grid; gap:8px;">
-        <div><b>Kills:</b> ${t.kills || 0}</div>
-        <div><b>Outposts:</b> ${t.outposts || 0}</div>
-        <div><b>Garrisons:</b> ${t.garrisons || 0}</div>
-        <div><b>Kaugeim kill:</b> ${t.longest_kill || 0} m</div>
-        <div><b>Punktisumma:</b> ${t.score || 0}</div>
-        ${fastestHtml}
-      </div>
-      <div style="margin-top:14px;">
-        <h4 style="margin: 10px 0 8px;">Mängitud kaardid (selles perioodis)</h4>
-        ${mapsHtml}
+      <div class="map-overlay-grid">
+        <section class="map-panel map-panel--full">
+          <div class="map-stats-bar">
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.games || 0}</div><div class="map-stats-bar__label">Mänge</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.wins || 0}</div><div class="map-stats-bar__label">Võite</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.losses || 0}</div><div class="map-stats-bar__label">Kaotusi</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.win_rate || 0}%</div><div class="map-stats-bar__label">Winrate</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.kills || 0}</div><div class="map-stats-bar__label">Kills</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.outposts || 0}</div><div class="map-stats-bar__label">OP</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.garrisons || 0}</div><div class="map-stats-bar__label">Gar</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.longest_kill || 0}m</div><div class="map-stats-bar__label">Longest</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.score || 0}</div><div class="map-stats-bar__label">Score</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${data.squad_rank || '–'}</div><div class="map-stats-bar__label">Squad rank</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${data.squad_percentile ?? '–'}${data.squad_percentile != null ? '%' : ''}</div><div class="map-stats-bar__label">Percentile</div></div>
+          </div>
+          <div class="map-last-played" style="margin-top:0.75rem;"><b>Profiil:</b> ${profile.type || 'balanced'} · ${profile.reason || ''}</div>
+          <div class="map-last-played">${fastestHtml}</div>
+        </section>
+
+        <section class="map-panel">
+          <div class="map-section-title">Vorm, viimased 10 mängu</div>
+          <div class="map-trend-grid">
+            <div class="map-trend-card"><span class="map-trend-card__value">${trend.games || 0}</span><span class="map-trend-card__label">Mänge</span></div>
+            <div class="map-trend-card"><span class="map-trend-card__value">${trend.wins || 0}</span><span class="map-trend-card__label">Võite</span></div>
+            <div class="map-trend-card"><span class="map-trend-card__value">${trend.losses || 0}</span><span class="map-trend-card__label">Kaotusi</span></div>
+            <div class="map-trend-card"><span class="map-trend-card__value">${trend.win_rate || 0}%</span><span class="map-trend-card__label">WR</span></div>
+            <div class="map-trend-card"><span class="map-trend-card__value">${trend.avg_score || 0}</span><span class="map-trend-card__label">Ø Score</span></div>
+            <div class="map-trend-card"><span class="map-trend-card__value">${trend.avg_kills || 0}</span><span class="map-trend-card__label">Ø Kills</span></div>
+          </div>
+          <div class="map-form-row" style="margin-top:0.65rem;">${formHtml || '<span class="map-form-pill map-form-pill--neutral">-</span>'}</div>
+        </section>
+
+        <section class="map-panel">
+          <div class="map-section-title">Saavutused</div>
+          <ul>${achievementsHtml || '<li>Saavutused puuduvad.</li>'}</ul>
+        </section>
+
+        <section class="map-panel">
+          <div class="map-section-title">Parimad kaardid score järgi</div>
+          <div class="overlay-table-wrap">
+            <table class="overlay-table overlay-table--compact">
+              <thead><tr><th>Kaart</th><th>Mänge</th><th>Võite</th><th>Kaotusi</th><th>WR</th><th>Avg Score</th><th>Total Score</th></tr></thead>
+              <tbody>${renderMapRows(bestByScore, 'score')}</tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="map-panel">
+          <div class="map-section-title">Parimad kaardid winrate järgi</div>
+          <div class="overlay-table-wrap">
+            <table class="overlay-table overlay-table--compact">
+              <thead><tr><th>Kaart</th><th>Mänge</th><th>Võite</th><th>Kaotusi</th><th>WR</th><th>Avg Kills</th><th>Avg OP</th></tr></thead>
+              <tbody>${renderMapRows(bestByWinrate, 'winrate')}</tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="map-panel map-panel--full">
+          <div class="map-section-title">Mängitud kaardid</div>
+          ${mapsHtml}
+        </section>
       </div>
     `;
   } catch (err) {
