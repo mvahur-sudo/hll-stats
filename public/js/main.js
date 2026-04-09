@@ -73,6 +73,7 @@ function removeToast(toast) {
    =========================== */
 const mapSelect             = document.getElementById("mapSelect");
 const resultRadios          = document.querySelectorAll("input[name='result']");
+const warmupCheckbox        = document.getElementById("warmupCheckbox");
 const newGameBtn            = document.getElementById("newGameBtn");
 const gamesSelect           = document.getElementById("gamesSelect");
 const currentGameInfo       = document.getElementById("currentGameInfo");
@@ -122,8 +123,9 @@ if (typeof window.formatGameLabel !== 'function') {
       ? d.toLocaleString("et-EE", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
       : '';
     const resultStr = g.result === 'win' ? ' (Võit)' : (g.result === 'loss' ? ' (Kaotus)' : '');
+    const warmupStr = g.warmup ? ' [Soojendus]' : '';
     const name = g.map_name || g.name || 'Mäng';
-    return `${name}${dateStr ? ' – ' + dateStr : ''}${resultStr}`;
+    return `${name}${warmupStr}${dateStr ? ' – ' + dateStr : ''}${resultStr}`;
   };
 }
 
@@ -678,20 +680,22 @@ if (newGameBtn) {
   newGameBtn.addEventListener("click", async () => {
     const mapName = mapSelect ? mapSelect.value.trim() : "";
     const result = getSelectedResult();
+    const warmup = Boolean(warmupCheckbox?.checked);
     if (!mapName) {
       showToast("Vali kaart.", "error", 4000);
       return;
     }
     try {
       if (typeof createGame !== 'function') return;
-      const game = await createGame({ map_name: mapName, result });
+      const game = await createGame({ map_name: mapName, result, warmup });
       await loadGames();
       currentGameId = game.id;
       if (gamesSelect) gamesSelect.value = String(game.id);
       if (currentGameInfo) currentGameInfo.textContent = formatGameLabel(game);
       await loadEntries();
       await loadStats();
-      showToast("Mäng loodud", "success");
+      if (warmupCheckbox) warmupCheckbox.checked = false;
+      showToast(warmup ? "Soojendusmäng loodud" : "Mäng loodud", "success");
     } catch (err) {
       console.error(err);
       showToast("Mängu loomine ebaõnnestus: " + (err?.message || err), "error", 5000);
