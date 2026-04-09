@@ -1029,7 +1029,7 @@ app.get('/api/stats/maps', (req, res) => {
 // --- API: PLAYER STATS (per window) ---
 app.get('/api/stats/player/:name', (req, res) => {
   const playerName = (req.params.name || '').trim();
-  const window = (req.query.window || 'week').trim(); // day/week/month/year
+  const window = (req.query.window || 'week').trim();
 
   if (!playerName) {
     return res.status(400).json({ error: 'player name missing' });
@@ -1046,7 +1046,7 @@ app.get('/api/stats/player/:name', (req, res) => {
   const sql = `
     SELECT
       g.id AS game_id,
-      g.map_name,
+      COALESCE(g.map_name, 'Tundmatu') AS map_name,
       g.result,
       g.created_at,
       e.kills,
@@ -1070,9 +1070,16 @@ app.get('/api/stats/player/:name', (req, res) => {
       return res.json({
         player_name: playerName,
         window,
-        totals: { kills: 0, outposts: 0, garrisons: 0, longest_kill: 0, score: 0 },
+        totals: { kills: 0, outposts: 0, garrisons: 0, longest_kill: 0, score: 0, wins: 0, losses: 0, games: 0, win_rate: 0 },
         maps: [],
-        fastest: null
+        fastest: null,
+        trend_last_10: { games: 0, wins: 0, losses: 0, win_rate: 0, avg_score: 0, avg_kills: 0, form: [] },
+        best_maps_by_score: [],
+        best_maps_by_winrate: [],
+        achievements: {},
+        profile: { type: 'balanced', reason: 'Andmeid pole piisavalt' },
+        squad_rank: null,
+        squad_percentile: null,
       });
     }
 
@@ -1085,96 +1092,227 @@ app.get('/api/stats/player/:name', (req, res) => {
       GROUP BY game_id
     `;
 
+    const squadSql = `
+      SELECT
+        e.player_name,
+        COUNT(*) AS games,
+        SUM(e.kills) AS kills,
+        SUM(e.outposts) AS outposts,
+        SUM(e.garrisons) AS garrisons,
+        SUM(CASE WHEN g.result = 'win' THEN 1 ELSE 0 END) AS wins,
+        SUM(CASE WHEN g.result = 'loss' THEN 1 ELSE 0 END) AS losses
+      FROM entries e
+      JOIN games g ON g.id = e.game_id
+      WHERE g.created_at >= ?
+      GROUP BY e.player_name
+    `;
+
     db.all(maxSql, gameIds, (err2, maxRows) => {
       if (err2) {
         console.error('DB error maxSql', err2);
         return res.status(500).json({ error: 'Database error' });
       }
 
-      const maxMap = new Map();
-      maxRows.forEach(r => {
-        maxMap.set(r.game_id, Number(r.max_longest) || 0);
-      });
+      db.all(squadSql, [thresholdIso], (err3, squadRows) => {
+        if (err3) {
+          console.error('DB error squadSql', err3);
+          return res.status(500).json({ error: 'Database error' });
+        }
 
-      let totalKills = 0;
-      let totalOutposts = 0;
-      let totalGarrisons = 0;
-      let maxLongestKill = 0;
-      let totalScore = 0;
+        const maxMap = new Map();
+        maxRows.forEach(r => maxMap.set(r.game_id, Number(r.max_longest) || 0));
 
-      const perMap = new Map();
+        let totalKills = 0;
+        let totalOutposts = 0;
+        let totalGarrisons = 0;
+        let maxLongestKill = 0;
+        let totalScore = 0;
+        let totalWins = 0;
+        let totalLosses = 0;
+        let bestSingleKills = null;
+        let bestSingleOutposts = null;
+        let bestSingleGarrisons = null;
+        let bestSingleLongest = null;
+        let bestSingleScore = null;
+        let currentWinStreak = 0;
+        let bestWinStreak = 0;
 
-      rows.forEach(r => {
-        const kills = Number(r.kills) || 0;
-        const outposts = Number(r.outposts) || 0;
-        const garrisons = Number(r.garrisons) || 0;
-        const lk = Number(r.longest_kill) || 0;
+        const perMap = new Map();
+        const recentGames = [];
 
-        const base = kills + outposts * 3 + garrisons * 6;
-        const maxLkForGame = maxMap.get(r.game_id) || 0;
-        const bonus = maxLkForGame > 0 && lk === maxLkForGame ? 1 : 0;
-        const score = base + bonus;
+        rows.forEach((r) => {
+          const kills = Number(r.kills) || 0;
+          const outposts = Number(r.outposts) || 0;
+          const garrisons = Number(r.garrisons) || 0;
+          const lk = Number(r.longest_kill) || 0;
+          const base = kills + outposts * 3 + garrisons * 6;
+          const maxLkForGame = maxMap.get(r.game_id) || 0;
+          const bonus = maxLkForGame > 0 && lk === maxLkForGame ? 1 : 0;
+          const score = base + bonus;
 
-        totalKills += kills;
-        totalOutposts += outposts;
-        totalGarrisons += garrisons;
-        if (lk > maxLongestKill) maxLongestKill = lk;
-        totalScore += score;
+          totalKills += kills;
+          totalOutposts += outposts;
+          totalGarrisons += garrisons;
+          totalScore += score;
+          if (lk > maxLongestKill) maxLongestKill = lk;
+          if (r.result === 'win') totalWins += 1;
+          else if (r.result === 'loss') totalLosses += 1;
 
-        const mapName = r.map_name || 'Tundmatu';
-        if (!perMap.has(mapName)) {
-          perMap.set(mapName, {
-            map_name: mapName,
-            games: 0,
-            wins: 0,
-            losses: 0,
-            kills: 0,
-            outposts: 0,
-            garrisons: 0,
-            longest_kill: 0,
-            score: 0
+          if (!bestSingleKills || kills > bestSingleKills.value) bestSingleKills = { value: kills, map_name: r.map_name, created_at: r.created_at };
+          if (!bestSingleOutposts || outposts > bestSingleOutposts.value) bestSingleOutposts = { value: outposts, map_name: r.map_name, created_at: r.created_at };
+          if (!bestSingleGarrisons || garrisons > bestSingleGarrisons.value) bestSingleGarrisons = { value: garrisons, map_name: r.map_name, created_at: r.created_at };
+          if (!bestSingleLongest || lk > bestSingleLongest.value) bestSingleLongest = { value: lk, map_name: r.map_name, created_at: r.created_at };
+          if (!bestSingleScore || score > bestSingleScore.value) bestSingleScore = { value: score, map_name: r.map_name, created_at: r.created_at };
+
+          if (r.result === 'win') {
+            currentWinStreak += 1;
+            if (currentWinStreak > bestWinStreak) bestWinStreak = currentWinStreak;
+          } else {
+            currentWinStreak = 0;
+          }
+
+          recentGames.push({
+            game_id: r.game_id,
+            map_name: r.map_name,
+            created_at: r.created_at,
+            result: r.result,
+            kills,
+            outposts,
+            garrisons,
+            longest_kill: lk,
+            score,
           });
-        }
-        const m = perMap.get(mapName);
-        m.games += 1;
-        if (r.result === 'win') m.wins += 1;
-        else if (r.result === 'loss') m.losses += 1;
-        m.kills += kills;
-        m.outposts += outposts;
-        m.garrisons += garrisons;
-        if (lk > m.longest_kill) m.longest_kill = lk;
-        m.score += score;
-      });
 
-      let fastest = null;
-      for (let i = 1; i < rows.length; i++) {
-        const prev = rows[i - 1];
-        const next = rows[i];
-        const diff = new Date(next.created_at) - new Date(prev.created_at);
-        if (diff >= 0 && (!fastest || diff < fastest.ms)) {
-          fastest = {
-            ms: diff,
-            from: { game_id: prev.game_id, map_name: prev.map_name, created_at: prev.created_at },
-            to: { game_id: next.game_id, map_name: next.map_name, created_at: next.created_at },
-            map_name: next.map_name || 'Tundmatu'
+          if (!perMap.has(r.map_name)) {
+            perMap.set(r.map_name, {
+              map_name: r.map_name,
+              games: 0,
+              wins: 0,
+              losses: 0,
+              kills: 0,
+              outposts: 0,
+              garrisons: 0,
+              longest_kill: 0,
+              score: 0,
+            });
+          }
+          const m = perMap.get(r.map_name);
+          m.games += 1;
+          if (r.result === 'win') m.wins += 1;
+          else if (r.result === 'loss') m.losses += 1;
+          m.kills += kills;
+          m.outposts += outposts;
+          m.garrisons += garrisons;
+          m.score += score;
+          if (lk > m.longest_kill) m.longest_kill = lk;
+        });
+
+        let fastest = null;
+        for (let i = 1; i < rows.length; i++) {
+          const prev = rows[i - 1];
+          const next = rows[i];
+          const diff = new Date(next.created_at) - new Date(prev.created_at);
+          if (diff >= 0 && (!fastest || diff < fastest.ms)) {
+            fastest = {
+              ms: diff,
+              from: { game_id: prev.game_id, map_name: prev.map_name, created_at: prev.created_at },
+              to: { game_id: next.game_id, map_name: next.map_name, created_at: next.created_at },
+              map_name: next.map_name || 'Tundmatu'
+            };
+          }
+        }
+
+        const maps = Array.from(perMap.values()).map(m => ({
+          ...m,
+          win_rate: m.games > 0 ? Math.round((m.wins / m.games) * 100) : 0,
+          avg_kills: m.games > 0 ? Number((m.kills / m.games).toFixed(1)) : 0,
+          avg_outposts: m.games > 0 ? Number((m.outposts / m.games).toFixed(1)) : 0,
+          avg_garrisons: m.games > 0 ? Number((m.garrisons / m.games).toFixed(1)) : 0,
+          avg_score: m.games > 0 ? Number((m.score / m.games).toFixed(1)) : 0,
+        }));
+
+        const last10 = recentGames.slice(-10);
+        const last10Wins = last10.filter(g => g.result === 'win').length;
+        const last10Losses = last10.filter(g => g.result === 'loss').length;
+
+        const killsPerGame = rows.length ? totalKills / rows.length : 0;
+        const outpostsPerGame = rows.length ? totalOutposts / rows.length : 0;
+        const garrisonsPerGame = rows.length ? totalGarrisons / rows.length : 0;
+
+        let profileType = 'balanced';
+        let profileReason = 'Ühtlane panus eri kategooriates.';
+        if (garrisonsPerGame >= killsPerGame && garrisonsPerGame >= outpostsPerGame) {
+          profileType = 'builder';
+          profileReason = 'Garrisonite panus domineerib kõige rohkem.';
+        } else if (outpostsPerGame > killsPerGame && outpostsPerGame >= garrisonsPerGame) {
+          profileType = 'support';
+          profileReason = 'Outpostide panus on kõige tugevam.';
+        } else if (killsPerGame > outpostsPerGame * 1.5 && killsPerGame > garrisonsPerGame * 1.5) {
+          profileType = 'fragger';
+          profileReason = 'Killide panus on selgelt domineeriv.';
+        }
+
+        const squadScores = squadRows.map(r => {
+          const games = Number(r.games) || 0;
+          const kills = Number(r.kills) || 0;
+          const outposts = Number(r.outposts) || 0;
+          const garrisons = Number(r.garrisons) || 0;
+          const score = kills + outposts * 3 + garrisons * 6;
+          return {
+            player_name: r.player_name,
+            games,
+            score,
           };
-        }
-      }
+        }).sort((a, b) => b.score - a.score || b.games - a.games || a.player_name.localeCompare(b.player_name));
 
-      return res.json({
-        player_name: playerName,
-        window,
-        totals: {
-          kills: totalKills,
-          outposts: totalOutposts,
-          garrisons: totalGarrisons,
-          longest_kill: maxLongestKill,
-          score: totalScore
-        },
-        maps: Array.from(perMap.values()).sort(
-          (a, b) => b.games - a.games || a.map_name.localeCompare(b.map_name)
-        ),
-        fastest
+        const rankIndex = squadScores.findIndex(r => r.player_name === playerName);
+        const squadRank = rankIndex >= 0 ? rankIndex + 1 : null;
+        const squadPercentile = rankIndex >= 0 && squadScores.length > 0
+          ? Math.round(((squadScores.length - rankIndex) / squadScores.length) * 100)
+          : null;
+
+        return res.json({
+          player_name: playerName,
+          window,
+          totals: {
+            games: rows.length,
+            wins: totalWins,
+            losses: totalLosses,
+            win_rate: rows.length > 0 ? Math.round((totalWins / rows.length) * 100) : 0,
+            kills: totalKills,
+            outposts: totalOutposts,
+            garrisons: totalGarrisons,
+            longest_kill: maxLongestKill,
+            score: totalScore,
+          },
+          maps: maps.sort((a, b) => b.games - a.games || a.map_name.localeCompare(b.map_name)),
+          fastest,
+          trend_last_10: {
+            games: last10.length,
+            wins: last10Wins,
+            losses: last10Losses,
+            win_rate: last10.length ? Math.round((last10Wins / last10.length) * 100) : 0,
+            avg_score: last10.length ? Number((last10.reduce((s, g) => s + g.score, 0) / last10.length).toFixed(1)) : 0,
+            avg_kills: last10.length ? Number((last10.reduce((s, g) => s + g.kills, 0) / last10.length).toFixed(1)) : 0,
+            form: last10.map(g => g.result === 'win' ? 'W' : g.result === 'loss' ? 'L' : '-'),
+          },
+          best_maps_by_score: [...maps].sort((a, b) => b.avg_score - a.avg_score || b.score - a.score).slice(0, 5),
+          best_maps_by_winrate: [...maps].filter(m => m.games >= 2).sort((a, b) => b.win_rate - a.win_rate || b.games - a.games).slice(0, 5),
+          achievements: {
+            highest_kills: bestSingleKills,
+            most_outposts: bestSingleOutposts,
+            most_garrisons: bestSingleGarrisons,
+            longest_kill: bestSingleLongest,
+            best_score: bestSingleScore,
+            best_win_streak: bestWinStreak,
+          },
+          profile: {
+            type: profileType,
+            reason: profileReason,
+          },
+          squad_rank: squadRank,
+          squad_percentile: squadPercentile,
+        });
       });
     });
   });
