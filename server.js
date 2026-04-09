@@ -740,115 +740,288 @@ app.get('/api/maps/:map/games', (req, res) => {
 
 // --- API: Rich per-map stats ---
 app.get('/api/stats/maps', (req, res) => {
-  const mapsStatsSql = `
+  const mapGamesSql = `
     SELECT
+      g.id,
       COALESCE(g.map_name, 'Tundmatu') AS map_name,
-      COUNT(DISTINCT g.id) AS total_games,
-      SUM(CASE WHEN g.result = 'win'  THEN 1 ELSE 0 END) AS wins,
-      SUM(CASE WHEN g.result = 'loss' THEN 1 ELSE 0 END) AS losses,
-      MAX(g.created_at) AS last_played
+      g.result,
+      g.created_at
     FROM games g
-    GROUP BY COALESCE(g.map_name, 'Tundmatu')
-    ORDER BY total_games DESC, map_name ASC
+    ORDER BY g.created_at DESC
   `;
 
-  const playersOnMapSql = `
+  const mapEntriesSql = `
     SELECT
+      e.game_id,
       COALESCE(g.map_name, 'Tundmatu') AS map_name,
       e.player_name,
-      COUNT(DISTINCT g.id) AS games,
-      SUM(e.kills)         AS total_kills,
-      SUM(e.outposts)      AS total_outposts,
-      SUM(e.garrisons)     AS total_garrisons,
-      MAX(e.longest_kill)  AS best_longest_kill
+      e.kills,
+      e.outposts,
+      e.garrisons,
+      e.longest_kill,
+      g.result,
+      g.created_at
     FROM entries e
     JOIN games g ON g.id = e.game_id
-    JOIN players p ON p.name = e.player_name
-    WHERE p.active = 1
-    GROUP BY COALESCE(g.map_name, 'Tundmatu'), e.player_name
+    LEFT JOIN players p ON p.name = e.player_name
+    WHERE p.active = 1 OR p.active IS NULL
+    ORDER BY g.created_at DESC, e.player_name ASC
   `;
 
-  const avgsSql = `
-    SELECT
-      COALESCE(g.map_name, 'Tundmatu') AS map_name,
-      ROUND(AVG(e.kills),       1) AS avg_kills,
-      ROUND(AVG(e.outposts),    1) AS avg_outposts,
-      ROUND(AVG(e.garrisons),   1) AS avg_garrisons,
-      ROUND(AVG(e.longest_kill),0) AS avg_longest_kill
-    FROM entries e
-    JOIN games g ON g.id = e.game_id
-    GROUP BY COALESCE(g.map_name, 'Tundmatu')
-  `;
-
-  db.all(mapsStatsSql, [], (err, mapRows) => {
+  db.all(mapGamesSql, [], (err, gameRows) => {
     if (err) {
-      console.error('DB error /api/stats/maps mapsStatsSql:', err);
+      console.error('DB error /api/stats/maps mapGamesSql:', err);
       return res.status(500).json({ error: 'Database error' });
     }
 
-    db.all(playersOnMapSql, [], (err2, playerRows) => {
+    db.all(mapEntriesSql, [], (err2, entryRows) => {
       if (err2) {
-        console.error('DB error /api/stats/maps playersOnMapSql:', err2);
+        console.error('DB error /api/stats/maps mapEntriesSql:', err2);
         return res.status(500).json({ error: 'Database error' });
       }
 
-      db.all(avgsSql, [], (err3, avgRows) => {
-        if (err3) {
-          console.error('DB error /api/stats/maps avgsSql:', err3);
-          return res.status(500).json({ error: 'Database error' });
+      const maps = new Map();
+
+      function ensureMap(mapName) {
+        if (!maps.has(mapName)) {
+          maps.set(mapName, {
+            map_name: mapName,
+            total_games: 0,
+            wins: 0,
+            losses: 0,
+            win_rate: 0,
+            avg: {
+              kills: 0,
+              outposts: 0,
+              garrisons: 0,
+              longest_kill: 0,
+              score: 0,
+            },
+            top_5_players: [],
+            full_detail: [],
+            trend_last_10: {
+              games: 0,
+              wins: 0,
+              losses: 0,
+              win_rate: 0,
+              form: [],
+              avg_score: 0,
+              avg_kills: 0,
+              avg_outposts: 0,
+              avg_garrisons: 0,
+            },
+            player_breakdown: [],
+            top_player: null,
+            most_active: null,
+            last_played: null,
+          });
+        }
+        return maps.get(mapName);
+      }
+
+      const gameEntries = new Map();
+      entryRows.forEach(row => {
+        if (!gameEntries.has(row.game_id)) gameEntries.set(row.game_id, []);
+        gameEntries.get(row.game_id).push(row);
+      });
+
+      gameRows.forEach(game => {
+        const mapData = ensureMap(game.map_name);
+        mapData.total_games += 1;
+        if (game.result === 'win') mapData.wins += 1;
+        else if (game.result === 'loss') mapData.losses += 1;
+        if (!mapData.last_played || game.created_at > mapData.last_played) {
+          mapData.last_played = game.created_at;
+        }
+      });
+
+      const playersByMap = new Map();
+      const detailByMap = new Map();
+      const trendByMap = new Map();
+      const perMapTotals = new Map();
+
+      gameRows.forEach(game => {
+        const entries = gameEntries.get(game.id) || [];
+        const mapName = game.map_name;
+        if (!detailByMap.has(mapName)) detailByMap.set(mapName, []);
+        if (!trendByMap.has(mapName)) trendByMap.set(mapName, []);
+        if (!perMapTotals.has(mapName)) {
+          perMapTotals.set(mapName, {
+            kills: 0,
+            outposts: 0,
+            garrisons: 0,
+            longest_kill: 0,
+            score: 0,
+            entries: 0,
+          });
         }
 
-        // Index avg rows by map
-        const avgMap = {};
-        avgRows.forEach(r => { avgMap[r.map_name] = r; });
-
-        // Index player rows by map
-        const playersByMap = {};
-        playerRows.forEach(r => {
-          if (!playersByMap[r.map_name]) playersByMap[r.map_name] = [];
-          playersByMap[r.map_name].push(r);
+        let maxLongest = 0;
+        entries.forEach(e => {
+          const lk = Number(e.longest_kill) || 0;
+          if (lk > maxLongest) maxLongest = lk;
         });
 
-        const maps = mapRows.map(row => {
-          const totalGames  = Number(row.total_games) || 0;
-          const wins        = Number(row.wins)        || 0;
-          const losses      = Number(row.losses)      || 0;
-          const winRate     = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+        let gameKills = 0;
+        let gameOutposts = 0;
+        let gameGarrisons = 0;
+        let gameScore = 0;
+        const playerRows = [];
 
-          const avg = avgMap[row.map_name] || {};
+        entries.forEach(e => {
+          const kills = Number(e.kills) || 0;
+          const outposts = Number(e.outposts) || 0;
+          const garrisons = Number(e.garrisons) || 0;
+          const longestKill = Number(e.longest_kill) || 0;
+          const bonus = maxLongest > 0 && longestKill === maxLongest ? 1 : 0;
+          const score = kills + outposts * 3 + garrisons * 6 + bonus;
 
-          // Top player = highest total kills on this map
-          const players = playersByMap[row.map_name] || [];
-          const topByKills   = [...players].sort((a, b) => Number(b.total_kills) - Number(a.total_kills))[0] || null;
-          const mostActive   = [...players].sort((a, b) => Number(b.games)      - Number(a.games))[0]      || null;
+          gameKills += kills;
+          gameOutposts += outposts;
+          gameGarrisons += garrisons;
+          gameScore += score;
 
-          return {
-            map_name:    row.map_name,
-            total_games: totalGames,
-            wins,
-            losses,
-            win_rate:    winRate,
-            avg: {
-              kills:        avg.avg_kills        || 0,
-              outposts:     avg.avg_outposts     || 0,
-              garrisons:    avg.avg_garrisons    || 0,
-              longest_kill: avg.avg_longest_kill || 0,
-            },
-            top_player: topByKills ? {
-              player_name: topByKills.player_name,
-              total_kills: Number(topByKills.total_kills),
-              games:       Number(topByKills.games),
-            } : null,
-            most_active: mostActive ? {
-              player_name: mostActive.player_name,
-              games:      Number(mostActive.games),
-            } : null,
-            last_played: row.last_played || null,
-          };
+          const totals = perMapTotals.get(mapName);
+          totals.kills += kills;
+          totals.outposts += outposts;
+          totals.garrisons += garrisons;
+          totals.longest_kill += longestKill;
+          totals.score += score;
+          totals.entries += 1;
+
+          if (!playersByMap.has(mapName)) playersByMap.set(mapName, new Map());
+          const playerMap = playersByMap.get(mapName);
+          if (!playerMap.has(e.player_name)) {
+            playerMap.set(e.player_name, {
+              player_name: e.player_name,
+              games: 0,
+              wins: 0,
+              losses: 0,
+              kills: 0,
+              outposts: 0,
+              garrisons: 0,
+              longest_kill: 0,
+              score: 0,
+            });
+          }
+          const player = playerMap.get(e.player_name);
+          player.games += 1;
+          if (e.result === 'win') player.wins += 1;
+          else if (e.result === 'loss') player.losses += 1;
+          player.kills += kills;
+          player.outposts += outposts;
+          player.garrisons += garrisons;
+          player.score += score;
+          if (longestKill > player.longest_kill) player.longest_kill = longestKill;
+
+          playerRows.push({
+            player_name: e.player_name,
+            kills,
+            outposts,
+            garrisons,
+            longest_kill: longestKill,
+            bonus,
+            score,
+            result: e.result,
+          });
         });
 
-        res.json({ maps });
+        playerRows.sort((a, b) =>
+          b.score - a.score ||
+          b.kills - a.kills ||
+          a.player_name.localeCompare(b.player_name)
+        );
+
+        detailByMap.get(mapName).push({
+          game_id: game.id,
+          created_at: game.created_at,
+          result: game.result || null,
+          total_kills: gameKills,
+          total_outposts: gameOutposts,
+          total_garrisons: gameGarrisons,
+          total_score: gameScore,
+          players: playerRows,
+        });
+
+        trendByMap.get(mapName).push({
+          created_at: game.created_at,
+          result: game.result || null,
+          total_kills: gameKills,
+          total_outposts: gameOutposts,
+          total_garrisons: gameGarrisons,
+          total_score: gameScore,
+        });
       });
+
+      const result = Array.from(maps.values()).map(mapData => {
+        const totals = perMapTotals.get(mapData.map_name) || { kills: 0, outposts: 0, garrisons: 0, longest_kill: 0, score: 0, entries: 0 };
+        const entryCount = totals.entries || 0;
+
+        mapData.win_rate = mapData.total_games > 0
+          ? Math.round((mapData.wins / mapData.total_games) * 100)
+          : 0;
+
+        mapData.avg = {
+          kills: entryCount ? Number((totals.kills / entryCount).toFixed(1)) : 0,
+          outposts: entryCount ? Number((totals.outposts / entryCount).toFixed(1)) : 0,
+          garrisons: entryCount ? Number((totals.garrisons / entryCount).toFixed(1)) : 0,
+          longest_kill: entryCount ? Math.round(totals.longest_kill / entryCount) : 0,
+          score: entryCount ? Number((totals.score / entryCount).toFixed(1)) : 0,
+        };
+
+        const playerMap = playersByMap.get(mapData.map_name) || new Map();
+        const players = Array.from(playerMap.values()).map(player => ({
+          ...player,
+          win_rate: player.games > 0 ? Math.round((player.wins / player.games) * 100) : 0,
+          avg_kills: player.games > 0 ? Number((player.kills / player.games).toFixed(1)) : 0,
+          avg_outposts: player.games > 0 ? Number((player.outposts / player.games).toFixed(1)) : 0,
+          avg_garrisons: player.games > 0 ? Number((player.garrisons / player.games).toFixed(1)) : 0,
+          avg_score: player.games > 0 ? Number((player.score / player.games).toFixed(1)) : 0,
+        })).sort((a, b) =>
+          b.score - a.score ||
+          b.games - a.games ||
+          a.player_name.localeCompare(b.player_name)
+        );
+
+        mapData.top_5_players = players.slice(0, 5);
+        mapData.player_breakdown = players;
+        mapData.top_player = players[0] || null;
+        mapData.most_active = [...players].sort((a, b) =>
+          b.games - a.games ||
+          b.score - a.score ||
+          a.player_name.localeCompare(b.player_name)
+        )[0] || null;
+
+        const details = (detailByMap.get(mapData.map_name) || []).sort((a, b) =>
+          new Date(b.created_at) - new Date(a.created_at)
+        );
+        mapData.full_detail = details;
+
+        const last10 = (trendByMap.get(mapData.map_name) || [])
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 10);
+        const trendGames = last10.length;
+        const trendWins = last10.filter(g => g.result === 'win').length;
+        const trendLosses = last10.filter(g => g.result === 'loss').length;
+        mapData.trend_last_10 = {
+          games: trendGames,
+          wins: trendWins,
+          losses: trendLosses,
+          win_rate: trendGames ? Math.round((trendWins / trendGames) * 100) : 0,
+          form: last10.map(g => g.result === 'win' ? 'W' : g.result === 'loss' ? 'L' : '-'),
+          avg_score: trendGames ? Number((last10.reduce((sum, g) => sum + g.total_score, 0) / trendGames).toFixed(1)) : 0,
+          avg_kills: trendGames ? Number((last10.reduce((sum, g) => sum + g.total_kills, 0) / trendGames).toFixed(1)) : 0,
+          avg_outposts: trendGames ? Number((last10.reduce((sum, g) => sum + g.total_outposts, 0) / trendGames).toFixed(1)) : 0,
+          avg_garrisons: trendGames ? Number((last10.reduce((sum, g) => sum + g.total_garrisons, 0) / trendGames).toFixed(1)) : 0,
+        };
+
+        return mapData;
+      }).sort((a, b) =>
+        b.total_games - a.total_games ||
+        a.map_name.localeCompare(b.map_name)
+      );
+
+      res.json({ maps: result });
     });
   });
 });
