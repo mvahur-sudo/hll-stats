@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+  <meta charset="UTF-8">
+  <title>Hell Let Loose – squad statistika</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Hell Let Loose squad statistika</h1>
+
+    <!-- Uus mäng / valitud mäng -->
+    <div class="top-grid">
+      <div class="card">
+        <h2>Uus mäng</h2>
+        <div class="form-row">
+          <label for="mapSelect">Kaart</label>
+          <select id="mapSelect"></select>
+        </div>
+        <div class="form-row">
+          <span>Tulemus</span>
+          <label>
+            <input type="radio" name="result" value="win">
+            Võit
+          </label>
+          <label>
+            <input type="radio" name="result" value="loss">
+            Kaotus
+          </label>
+          <label>
+            <input type="radio" name="result" value="" checked>
+            Pole oluline
+          </label>
+        </div>
+        <button id="newGameBtn" class="btn btn-primary">Loo uus mäng</button>
+      </div>
+
+      <div class="card">
+        <h2>Valitud mäng</h2>
+        <div class="form-row">
+          <label for="gamesSelect">Mängud</label>
+          <select id="gamesSelect"></select>
+        </div>
+        <div id="currentGameInfo" class="current-game-info"></div>
+        <div class="card-footer-right"><button id="deleteGameBtn" class="btn btn-danger" type="button">Kustuta mäng</button></div>
+      </div>
+    </div>
+
+    <!-- Tabel ja salvestamine -->
+    <div class="card">
+      <div class="save-bar">
+        <div class="save-hint">
+          Muuda numbreid otse tabelis ja vajuta <b>“Salvesta kõik”</b>. TAB liigub mängijalt mängijale.
+        </div>
+        <button id="saveAllBtn" class="btn btn-saveall">Salvesta kõik</button>
+      </div>
+
+      <div class="add-to-game-row">
+        <label>
+          Lisa mängija sellesse mängu
+          <input type="text" id="addGamePlayerName" list="playersList" />
+        </label>
+        <button id="addGamePlayerBtn" class="btn btn-secondary" type="button">
+          Lisa mängu
+        </button>
+        <datalist id="playersList"></datalist>
+      </div>
+
+    <div class="table-wrap">
+     <table id="scoresTable" class="scores-table">
+       <thead>
+         <tr>
+           <th>#</th>
+           <th>Mängija</th>
+           <th>Kills</th>
+           <th>Outpostid</th>
+           <th>Garrisonid</th>
+           <th>Kaugeim kill (m)</th>
+           <th>Boonus</th>
+           <th>Kokku punktid</th>
+           <th></th>
+         </tr>
+       </thead>
+       <tbody>
+         <!-- JS täidab -->
+       </tbody>
+     </table>
+    </div>
+
+    <!-- Rooster -->
+    <div class="card">
+      <h2>Squadi mängijad (rooster)</h2>
+      <div class="roster-controls">
+        <label>
+          Lisa nimi:
+          <input id="newPlayerName" type="text" placeholder="Mängija nimi">
+        </label>
+        <button id="addPlayerBtn" class="btn btn-secondary" type="button">
+          Lisa nimekirja
+        </button>
+      </div>
+      <div id="rosterList" class="roster-list">
+        <!-- roster.js joonistab pillid -->
+      </div>
+    </div>
+
+    <!-- Statistika -->
+    <div class="stats">
+      <h2>Mängijate ja kaartide statistika</h2>
+      <div class="stats-grid">
+        <div class="stats-card">
+          <h3>Top podium (meie omavahel)</h3>
+          <div id="statsWinners" class="stats-section"></div>
+        </div>
+        <div class="stats-card">
+          <h3>Kaardi statistika</h3>
+          <div id="statsMaps" class="stats-section"></div>
+        </div>
+        <div class="stats-card">
+          <h3>Mängijate rekordid</h3>
+          <div id="statsPlayers" class="stats-section"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript failid -->
+  <script src="/js/maps.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/table.js"></script>
+  <script src="/js/roster.js"></script>
+  <script src="/js/mapOverlay.js"></script>
+  <script src="/js/main.js"></script>
+
+  <!-- Toastide konteiner paremal ülas -->
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="playerModal" class="modal hidden">
+  <div class="modal-backdrop" id="playerModalClose"></div>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="playerModalTitle"></h3>
+      <button id="playerModalX" class="btn btn-secondary">×</button>
+    </div>
+
+    <div id="playerModalBody"></div>
+  </div>
+</div>
+
+
+</body>
+</html>
