@@ -743,6 +743,21 @@ function formatDuration(ms) {
   return `${s}s`;
 }
 
+async function fetchPlayerStats(playerName, windowKey) {
+  const res = await fetch(`/api/stats/player/${encodeURIComponent(playerName)}?window=${encodeURIComponent(windowKey)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+function compareValue(a, b, suffix = "") {
+  const av = Number(a || 0);
+  const bv = Number(b || 0);
+  const diff = av - bv;
+  const cls = diff > 0 ? 'result-win' : diff < 0 ? 'result-loss' : 'result-none';
+  const sign = diff > 0 ? '+' : '';
+  return `<span class="${cls}">${sign}${diff}${suffix}</span>`;
+}
+
 async function openPlayerModal(playerName, windowKey) {
   const modal = document.getElementById("playerModal");
   const titleEl = document.getElementById("playerModalTitle");
@@ -761,9 +776,7 @@ async function openPlayerModal(playerName, windowKey) {
   bodyEl.innerHTML = "Laen...";
 
   try {
-    const res = await fetch(`/api/stats/player/${encodeURIComponent(playerName)}?window=${encodeURIComponent(windowKey)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await fetchPlayerStats(playerName, windowKey);
 
     const t = data.totals || {};
     const fastest = data.fastest;
@@ -840,8 +853,27 @@ async function openPlayerModal(playerName, windowKey) {
 
     const formHtml = (trend.form || []).map(item => `<span class="map-form-pill map-form-pill--${item === 'W' ? 'win' : item === 'L' ? 'loss' : 'neutral'}">${item}</span>`).join('');
 
+    const compareOptions = currentPlayers
+      .filter(p => p.name !== playerName)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(p => `<option value="${p.name}">${p.name}</option>`)
+      .join('');
+
     bodyEl.innerHTML = `
       <div class="map-overlay-grid">
+        <section class="map-panel map-panel--full">
+          <div class="compare-toolbar">
+            <label><b>Head-to-head:</b>
+              <select id="comparePlayerSelect">
+                <option value="">Vali mängija...</option>
+                ${compareOptions}
+              </select>
+            </label>
+            <div class="map-last-played">Võrdlus käib sama perioodi sees: <b>${windowKey}</b></div>
+          </div>
+          <div id="comparePanel"></div>
+        </section>
+
         <section class="map-panel map-panel--full">
           <div class="map-stats-bar">
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.games || 0}</div><div class="map-stats-bar__label">Mänge</div></div>
@@ -904,6 +936,46 @@ async function openPlayerModal(playerName, windowKey) {
         </section>
       </div>
     `;
+
+    const compareSelect = document.getElementById('comparePlayerSelect');
+    const comparePanel = document.getElementById('comparePanel');
+    if (compareSelect && comparePanel) {
+      compareSelect.addEventListener('change', async () => {
+        const other = compareSelect.value;
+        if (!other) {
+          comparePanel.innerHTML = '';
+          return;
+        }
+        comparePanel.innerHTML = '<div class="overlay-loading">Laen võrdlust...</div>';
+        try {
+          const otherData = await fetchPlayerStats(other, windowKey);
+          const ot = otherData.totals || {};
+          comparePanel.innerHTML = `
+            <div class="map-section-title">${playerName} vs ${other}</div>
+            <div class="overlay-table-wrap">
+              <table class="overlay-table overlay-table--compact">
+                <thead>
+                  <tr><th>Mõõdik</th><th>${playerName}</th><th>${other}</th><th>Vahe</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Games</td><td>${t.games || 0}</td><td>${ot.games || 0}</td><td>${compareValue(t.games, ot.games)}</td></tr>
+                  <tr><td>Wins</td><td>${t.wins || 0}</td><td>${ot.wins || 0}</td><td>${compareValue(t.wins, ot.wins)}</td></tr>
+                  <tr><td>Winrate</td><td>${t.win_rate || 0}%</td><td>${ot.win_rate || 0}%</td><td>${compareValue(t.win_rate, ot.win_rate, '%')}</td></tr>
+                  <tr><td>Kills</td><td>${t.kills || 0}</td><td>${ot.kills || 0}</td><td>${compareValue(t.kills, ot.kills)}</td></tr>
+                  <tr><td>Outposts</td><td>${t.outposts || 0}</td><td>${ot.outposts || 0}</td><td>${compareValue(t.outposts, ot.outposts)}</td></tr>
+                  <tr><td>Garrisons</td><td>${t.garrisons || 0}</td><td>${ot.garrisons || 0}</td><td>${compareValue(t.garrisons, ot.garrisons)}</td></tr>
+                  <tr><td>Longest kill</td><td>${t.longest_kill || 0}</td><td>${ot.longest_kill || 0}</td><td>${compareValue(t.longest_kill, ot.longest_kill)}</td></tr>
+                  <tr><td>Score</td><td>${t.score || 0}</td><td>${ot.score || 0}</td><td>${compareValue(t.score, ot.score)}</td></tr>
+                  <tr><td>Squad rank</td><td>${data.squad_rank || '–'}</td><td>${otherData.squad_rank || '–'}</td><td>${typeof data.squad_rank === 'number' && typeof otherData.squad_rank === 'number' ? compareValue(otherData.squad_rank, data.squad_rank) : '–'}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          `;
+        } catch (err) {
+          comparePanel.innerHTML = `Viga võrdluse laadimisel: ${err?.message || err}`;
+        }
+      });
+    }
   } catch (err) {
     console.error(err);
     bodyEl.innerHTML = `Viga mängija statistika laadimisel: ${err?.message || err}`;
