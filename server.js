@@ -164,9 +164,16 @@ db.serialize(() => {
       name TEXT NOT NULL,
       map_name TEXT,
       result TEXT,
+      warmup INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     )
   `);
+
+  db.run(`ALTER TABLE games ADD COLUMN warmup INTEGER NOT NULL DEFAULT 0`, (err) => {
+    if (err && !String(err.message || '').includes('duplicate column name')) {
+      console.error('DB error ALTER TABLE games warmup:', err);
+    }
+  });
 
   // mängijate read mängude juures
   db.run(`
@@ -277,7 +284,7 @@ app.delete('/api/players/:id', (req, res) => {
 // kõik mängud
 app.get('/api/games', (req, res) => {
   db.all(
-    'SELECT id, name, map_name, result, created_at FROM games ORDER BY created_at DESC',
+    'SELECT id, name, map_name, result, warmup, created_at FROM games ORDER BY created_at DESC',
     (err, rows) => {
       if (err) {
         console.error('DB error /api/games:', err);
@@ -290,7 +297,7 @@ app.get('/api/games', (req, res) => {
 
 // loo uus mäng
 app.post('/api/games', (req, res) => {
-  const { map_name, result } = req.body || {};
+  const { map_name, result, warmup } = req.body || {};
 
   if (!map_name || !map_name.trim()) {
     return res.status(400).json({ error: 'Kaardi nimi on kohustuslik' });
@@ -306,9 +313,11 @@ app.post('/api/games', (req, res) => {
 
   const name = cleanMap;
 
+  const isWarmup = warmup ? 1 : 0;
+
   db.run(
-    'INSERT INTO games (name, map_name, result, created_at) VALUES (?, ?, ?, ?)',
-    [name, cleanMap, cleanResult, createdAt],
+    'INSERT INTO games (name, map_name, result, warmup, created_at) VALUES (?, ?, ?, ?, ?)',
+    [name, cleanMap, cleanResult, isWarmup, createdAt],
     function (err) {
       if (err) {
         console.error('DB error INSERT /api/games:', err);
@@ -348,6 +357,7 @@ app.post('/api/games', (req, res) => {
         name,
         map_name: cleanMap,
         result: cleanResult,
+        warmup: Boolean(isWarmup),
         created_at: createdAt
       });
     }
@@ -532,6 +542,7 @@ app.get('/api/stats', (req, res) => {
     JOIN games g ON g.id = e.game_id
     JOIN players p ON p.name = e.player_name
     WHERE p.active = 1
+      AND COALESCE(g.warmup, 0) = 0
   `;
 
   const overallSql = `
