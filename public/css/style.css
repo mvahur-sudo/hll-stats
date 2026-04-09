@@ -77,7 +77,15 @@ h2, h3 { margin-top: 0; }
   gap: 1rem;
 }
 
-.stats { margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+.stats { margin-top: 2.5rem; padding-top: 1.5rem; position: relative; }
+.stats::before,
+.section-divider {
+  content: "";
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(55,65,81,0), rgba(71,85,105,0.75), rgba(55,65,81,0));
+}
+.stats::before { margin-bottom: 1.5rem; }
 .stats h2 { font-size: 1.1rem; margin-bottom: 1rem; }
 
 @media (max-width: 900px) { .stats-grid { grid-template-columns: 1fr; } }
@@ -274,9 +282,7 @@ button[tabindex="-1"] { outline: none; }
 }
 
 .section-divider {
-  height: 1px;
   margin: 1.1rem 0 1.15rem;
-  background: linear-gradient(90deg, rgba(55,65,81,0), rgba(71,85,105,0.75), rgba(55,65,81,0));
 }
 
 .roster-card h2 {
