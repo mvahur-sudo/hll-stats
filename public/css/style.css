@@ -605,6 +605,24 @@ button[tabindex="-1"] { outline: none; }
   color: var(--text-muted);
 }
 
+.compare-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.compare-toolbar select {
+  margin-left: 0.4rem;
+  background: var(--bg);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 0.35rem 0.5rem;
+}
+
 .map-trend-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
