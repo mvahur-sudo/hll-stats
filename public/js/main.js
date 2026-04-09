@@ -486,6 +486,11 @@ function computeFastestCreatedGap(games) {
   return best.prev && best.next ? best : null;
 }
 
+function renderRecordMapLink(mapName) {
+  if (!mapName) return '';
+  return `<button type="button" class="player-link record-map-link" data-map-name="${mapName}">${mapName}</button>`;
+}
+
 function renderStatsRecords(records, overall) {
   if (!statsPlayersEl) return;
   statsPlayersEl.innerHTML = "";
@@ -505,7 +510,7 @@ function renderStatsRecords(records, overall) {
 
     <div class="record-label">Võiduprotsent:</div>
     <div class="record-value">${overall.win_percentage}%</div>
-    <hr style="margin:10px 0;">
+    <div class="section-divider" aria-hidden="true" style="margin:10px 0 4px;"></div>
   `;
 
   statsPlayersEl.appendChild(block);
@@ -527,23 +532,23 @@ function renderStatsRecords(records, overall) {
   const items = [];
   if (records.kills) {
     items.push({ label: "Kõige rohkem kille",
-      text: `${records.kills.player_name} – ${records.kills.value} killi (${records.kills.map_name}, ${formatDate(records.kills.created_at)})` });
+      text: `${records.kills.player_name} – ${records.kills.value} killi (${renderRecordMapLink(records.kills.map_name)}, ${formatDate(records.kills.created_at)})` });
   }
   if (records.outposts) {
     items.push({ label: "Kõige rohkem outposte",
-      text: `${records.outposts.player_name} – ${records.outposts.value} outposti (${records.outposts.map_name}, ${formatDate(records.outposts.created_at)})` });
+      text: `${records.outposts.player_name} – ${records.outposts.value} outposti (${renderRecordMapLink(records.outposts.map_name)}, ${formatDate(records.outposts.created_at)})` });
   }
   if (records.garrisons) {
     items.push({ label: "Kõige rohkem garrisone",
-      text: `${records.garrisons.player_name} – ${records.garrisons.value} garrisonit (${records.garrisons.map_name}, ${formatDate(records.garrisons.created_at)})` });
+      text: `${records.garrisons.player_name} – ${records.garrisons.value} garrisonit (${renderRecordMapLink(records.garrisons.map_name)}, ${formatDate(records.garrisons.created_at)})` });
   }
   if (records.longest_kill) {
     items.push({ label: "Kõige kaugem kill",
-      text: `${records.longest_kill.player_name} – ${records.longest_kill.value} m (${records.longest_kill.map_name}, ${formatDate(records.longest_kill.created_at)})` });
+      text: `${records.longest_kill.player_name} – ${records.longest_kill.value} m (${renderRecordMapLink(records.longest_kill.map_name)}, ${formatDate(records.longest_kill.created_at)})` });
   }
   if (records.score) {
     items.push({ label: "Suurim punktisumma",
-      text: `${records.score.player_name} – ${records.score.value} punkti (${records.score.map_name}, ${formatDate(records.score.created_at)})` });
+      text: `${records.score.player_name} – ${records.score.value} punkti (${renderRecordMapLink(records.score.map_name)}, ${formatDate(records.score.created_at)})` });
   }
 
   /* ✅ UUS: kõige lühem vahe kahe järjestikuse mängu loomise vahel */
@@ -580,6 +585,14 @@ function renderStatsRecords(records, overall) {
 });
 
 statsPlayersEl.appendChild(ul);
+
+statsPlayersEl.querySelectorAll('[data-map-name]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (typeof openMapOverlay === 'function') {
+      openMapOverlay(btn.dataset.mapName);
+    }
+  });
+});
 }
 
 /* ===========================
