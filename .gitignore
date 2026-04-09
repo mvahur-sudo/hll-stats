@@ -1,0 +1,4 @@
+node_modules/
+hll_stats.db
+.env
+npm-debug.log*
