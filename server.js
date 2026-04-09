@@ -738,6 +738,121 @@ app.get('/api/maps/:map/games', (req, res) => {
   );
 });
 
+// --- API: Rich per-map stats ---
+app.get('/api/stats/maps', (req, res) => {
+  const mapsStatsSql = `
+    SELECT
+      COALESCE(g.map_name, 'Tundmatu') AS map_name,
+      COUNT(DISTINCT g.id) AS total_games,
+      SUM(CASE WHEN g.result = 'win'  THEN 1 ELSE 0 END) AS wins,
+      SUM(CASE WHEN g.result = 'loss' THEN 1 ELSE 0 END) AS losses,
+      MAX(g.created_at) AS last_played
+    FROM games g
+    GROUP BY COALESCE(g.map_name, 'Tundmatu')
+    ORDER BY total_games DESC, map_name ASC
+  `;
+
+  const playersOnMapSql = `
+    SELECT
+      COALESCE(g.map_name, 'Tundmatu') AS map_name,
+      e.player_name,
+      COUNT(DISTINCT g.id) AS games,
+      SUM(e.kills)         AS total_kills,
+      SUM(e.outposts)      AS total_outposts,
+      SUM(e.garrisons)     AS total_garrisons,
+      MAX(e.longest_kill)  AS best_longest_kill
+    FROM entries e
+    JOIN games g ON g.id = e.game_id
+    JOIN players p ON p.name = e.player_name
+    WHERE p.active = 1
+    GROUP BY COALESCE(g.map_name, 'Tundmatu'), e.player_name
+  `;
+
+  const avgsSql = `
+    SELECT
+      COALESCE(g.map_name, 'Tundmatu') AS map_name,
+      ROUND(AVG(e.kills),       1) AS avg_kills,
+      ROUND(AVG(e.outposts),    1) AS avg_outposts,
+      ROUND(AVG(e.garrisons),   1) AS avg_garrisons,
+      ROUND(AVG(e.longest_kill),0) AS avg_longest_kill
+    FROM entries e
+    JOIN games g ON g.id = e.game_id
+    GROUP BY COALESCE(g.map_name, 'Tundmatu')
+  `;
+
+  db.all(mapsStatsSql, [], (err, mapRows) => {
+    if (err) {
+      console.error('DB error /api/stats/maps mapsStatsSql:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    db.all(playersOnMapSql, [], (err2, playerRows) => {
+      if (err2) {
+        console.error('DB error /api/stats/maps playersOnMapSql:', err2);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      db.all(avgsSql, [], (err3, avgRows) => {
+        if (err3) {
+          console.error('DB error /api/stats/maps avgsSql:', err3);
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        // Index avg rows by map
+        const avgMap = {};
+        avgRows.forEach(r => { avgMap[r.map_name] = r; });
+
+        // Index player rows by map
+        const playersByMap = {};
+        playerRows.forEach(r => {
+          if (!playersByMap[r.map_name]) playersByMap[r.map_name] = [];
+          playersByMap[r.map_name].push(r);
+        });
+
+        const maps = mapRows.map(row => {
+          const totalGames  = Number(row.total_games) || 0;
+          const wins        = Number(row.wins)        || 0;
+          const losses      = Number(row.losses)      || 0;
+          const winRate     = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
+          const avg = avgMap[row.map_name] || {};
+
+          // Top player = highest total kills on this map
+          const players = playersByMap[row.map_name] || [];
+          const topByKills   = [...players].sort((a, b) => Number(b.total_kills) - Number(a.total_kills))[0] || null;
+          const mostActive   = [...players].sort((a, b) => Number(b.games)      - Number(a.games))[0]      || null;
+
+          return {
+            map_name:    row.map_name,
+            total_games: totalGames,
+            wins,
+            losses,
+            win_rate:    winRate,
+            avg: {
+              kills:        avg.avg_kills        || 0,
+              outposts:     avg.avg_outposts     || 0,
+              garrisons:    avg.avg_garrisons    || 0,
+              longest_kill: avg.avg_longest_kill || 0,
+            },
+            top_player: topByKills ? {
+              player_name: topByKills.player_name,
+              total_kills: Number(topByKills.total_kills),
+              games:       Number(topByKills.games),
+            } : null,
+            most_active: mostActive ? {
+              player_name: mostActive.player_name,
+              games:      Number(mostActive.games),
+            } : null,
+            last_played: row.last_played || null,
+          };
+        });
+
+        res.json({ maps });
+      });
+    });
+  });
+});
+
 // --- API: PLAYER STATS (per window) ---
 app.get('/api/stats/player/:name', (req, res) => {
   const playerName = (req.params.name || '').trim();
