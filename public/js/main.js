@@ -640,7 +640,7 @@ function renderStatsRecords(records, overall) {
 
     items.push({
       label: "Kõige kiiremini mängitud kaart",
-      text: `${nextLabel} - aeg ${formatDuration(fastest.ms)}`
+      text: `${renderRecordGameLink(nextLabel, fastest.next.id)} - aeg ${formatDuration(fastest.ms)}`
     });
   }
 
