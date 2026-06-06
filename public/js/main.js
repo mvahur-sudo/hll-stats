@@ -240,10 +240,18 @@ async function loadEntries() {
   if (typeof fetchEntries !== 'function') return;
 
   const entries = await fetchEntries(currentGameId);
+  const mobileContainer = document.getElementById('mobilePlayerCards');
 
   if (typeof renderTable === 'function') {
     renderTable(entries, tbody);
-  } else {
+  }
+
+  // Render mobiilikaardid
+  if (typeof renderMobileCards === 'function' && mobileContainer) {
+    renderMobileCards(entries, mobileContainer);
+  }
+
+  if (typeof renderTable !== 'function') {
     // Fallback render (kui renderTable puudub)
     tbody.innerHTML = "";
     entries.forEach((e, idx) => {
@@ -261,6 +269,15 @@ async function loadEntries() {
         <td><button data-delete="${e.id}" title="Eemalda sellest mängust">×</button></td>
       `;
       tbody.appendChild(tr);
+    });
+  }
+
+  // Seo mobiilsetele kaartidele live arvutus
+  if (mobileContainer) {
+    mobileContainer.addEventListener('input', e => {
+      if (e.target.classList && e.target.classList.contains('mobile-score-input')) {
+        recalcMobileFromCards(mobileContainer);
+      }
     });
   }
 
@@ -732,7 +749,17 @@ if (saveAllBtn && tbody) {
       showToast("Tabeli sisu kogumise funktsioon puudub.", "error", 5000);
       return;
     }
-    const payload = collectTablePayloads(tbody);
+    const mobileContainer = document.getElementById('mobilePlayerCards');
+    let payload;
+    if (mobileContainer && mobileContainer.querySelector('.mobile-player-card')) {
+      if (typeof collectMobilePayloads !== 'function') {
+        showToast("Mobiilse tabeli kogumise funktsioon puudub.", "error", 5000);
+        return;
+      }
+      payload = collectMobilePayloads(mobileContainer);
+    } else {
+      payload = collectTablePayloads(tbody);
+    }
     if (!payload.length) { showToast("Tabel on tühi.", "info", 3500); return; }
     try {
       if (typeof saveEntry !== 'function') return;
@@ -1120,6 +1147,35 @@ async function openPlayerModal(playerName, windowKey) {
       }
     } catch (verr) {
       // versiooni pärimine pole kriitiline
+    }
+
+    // Mobiilne roster collapse
+    const rosterCard = document.querySelector('.roster-card');
+    if (rosterCard && window.innerWidth <= 768) {
+      rosterCard.classList.add('collapsed');
+      rosterCard.querySelector('h2').addEventListener('click', () => {
+        rosterCard.classList.toggle('collapsed');
+      });
+    }
+
+    // Mobiilne mängija eemaldamine kaartidelt
+    const mobileContainer = document.getElementById('mobilePlayerCards');
+    if (mobileContainer) {
+      mobileContainer.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button[data-mobile-delete]');
+        if (!btn) return;
+        const entryId = btn.dataset.mobileDelete;
+        if (!entryId) return;
+        try {
+          if (typeof deleteEntry === 'function') {
+            await deleteEntry(entryId);
+          }
+          await loadEntries();
+          await loadStats();
+        } catch (err) {
+          console.error(err);
+        }
+      });
     }
   } catch (err) {
     console.error("Initial load failed", err);

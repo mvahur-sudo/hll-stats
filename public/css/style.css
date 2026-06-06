@@ -785,3 +785,238 @@ button[tabindex="-1"] { outline: none; }
 .version-banner:hover {
   opacity: 1;
 }
+
+/* ============================================================
+   Mobiiilne responsive layout
+   ============================================================ */
+
+/* Mobile card container – peidetud desktopil, nähtav mobiilis */
+#mobilePlayerCards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 0.6rem 6rem;
+  }
+
+  h1 {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .top-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .card {
+    padding: 0.7rem 0.75rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .card h2 {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Peida desktop tabel, näita carde */
+  #scoresTable {
+    display: none;
+  }
+  #mobilePlayerCards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .mobile-player-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 0.7rem 0.75rem;
+    box-shadow: var(--shadow-card);
+  }
+
+  .mobile-player-card.rank-1 {
+    border-left: 3px solid #facc15;
+  }
+  .mobile-player-card.rank-2 {
+    border-left: 3px solid #94a3b8;
+  }
+  .mobile-player-card.rank-3 {
+    border-left: 3px solid #f472b6;
+  }
+  .mobile-player-card.highlight {
+    border-left: 3px solid #38bdf8;
+  }
+
+  .mobile-player-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .mobile-player-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #f9fafb;
+  }
+
+  .mobile-player-pos {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-right: 0.5rem;
+  }
+
+  .mobile-player-total {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.9rem;
+  }
+
+  .mobile-player-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+  }
+
+  .mobile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .mobile-field label {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .mobile-field input {
+    min-height: 40px;
+    width: 100%;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.5rem;
+    color: var(--text);
+    font-size: 0.9rem;
+    box-sizing: border-box;
+  }
+
+  .mobile-field input:focus {
+    outline: 1px solid var(--accent);
+  }
+
+  .mobile-player-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(55,65,81,0.3);
+  }
+
+  .mobile-player-footer button {
+    min-height: 44px;
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .mobile-bonus-tag {
+    grid-column: 1 / -1;
+    font-size: 0.72rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin-top: 0.15rem;
+  }
+
+  /* Sticky salvesta nupp */
+  #saveAllBtn {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-height: 52px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 0;
+    z-index: 999;
+    background: linear-gradient(135deg, var(--accent-3), #3b82f6);
+    color: var(--bg);
+    border: none;
+    cursor: pointer;
+    padding: 0.7rem 1rem;
+    margin: 0;
+    letter-spacing: 0.04em;
+  }
+  #saveAllBtn:hover {
+    filter: brightness(1.1);
+  }
+
+  /* Peida statistika sektsioon mobiilis */
+  .stats {
+    display: none;
+  }
+
+  /* Peida või collapse roster mobiilis */
+  .roster-card {
+    margin-bottom: 0;
+  }
+  .roster-card h2 {
+    cursor: pointer;
+    position: relative;
+    padding-right: 1.5rem;
+    margin-bottom: 0;
+  }
+  .roster-card h2::after {
+    content: '\25BC';
+    position: absolute;
+    right: 0;
+    top: 0;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    transition: transform 0.2s;
+  }
+  .roster-card.collapsed h2::after {
+    transform: rotate(-90deg);
+  }
+  .roster-card.collapsed .roster-controls,
+  .roster-card.collapsed #rosterList {
+    display: none;
+  }
+
+  .add-to-game-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+  .add-to-game-row input[type="text"] {
+    min-height: 40px;
+    width: 100%;
+  }
+  .add-to-game-row button {
+    min-height: 44px;
+  }
+
+  .save-bar .save-hint {
+    font-size: 0.72rem;
+  }
+
+  .form-row select,
+  .form-row input[type="text"],
+  input[type="text"] {
+    min-height: 40px;
+  }
+
+  .btn {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  .current-game-info {
+    font-size: 0.75rem;
+  }
+}

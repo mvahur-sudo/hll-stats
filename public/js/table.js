@@ -209,3 +209,161 @@ function recalcFromTable(tbodyEl) {
     // NB! mitte mingit tbodyEl.appendChild(row) siin!
   });
 }
+
+/* ===========================
+   Mobile card renderdus
+   =========================== */
+function renderMobileCards(entries, containerEl) {
+  if (!containerEl) return;
+  containerEl.innerHTML = '';
+
+  if (!entries || !entries.length) {
+    containerEl.innerHTML = '<div class="mobile-player-card" style="text-align:center;color:var(--text-dim);padding:1rem;">Selles mängus pole mängijaid.</div>';
+    return;
+  }
+
+  const scored = calculateScores(entries);
+  const maxLongest = scored.reduce((m, e) => (e.longest_kill > m ? e.longest_kill : m), 0);
+
+  scored.forEach((e, index) => {
+    const card = document.createElement('div');
+    card.className = 'mobile-player-card';
+    card.dataset.playerName = e.player_name;
+    if (e.id) card.dataset.entryId = e.id;
+
+    if (index === 0) card.classList.add('rank-1');
+    else if (index === 1) card.classList.add('rank-2');
+    else if (index === 2) card.classList.add('rank-3');
+    if (e.longest_kill === maxLongest && maxLongest > 0) {
+      card.classList.add('highlight');
+    }
+
+    const bonus = e.bonus || (maxLongest > 0 && e.longest_kill === maxLongest ? 1 : 0);
+
+    card.innerHTML = `
+      <div class="mobile-player-header">
+        <span>
+          <span class="mobile-player-pos">#${index + 1}</span>
+          <span class="mobile-player-name">${e.player_name}</span>
+        </span>
+        <span class="mobile-player-total">${e.total}</span>
+      </div>
+      <div class="mobile-player-fields">
+        <div class="mobile-field">
+          <label>Kills</label>
+          <input type="number" class="mobile-score-input" data-field="kills" min="0" value="${e.kills}">
+        </div>
+        <div class="mobile-field">
+          <label>Outpost</label>
+          <input type="number" class="mobile-score-input" data-field="outposts" min="0" value="${e.outposts}">
+        </div>
+        <div class="mobile-field">
+          <label>Garrison</label>
+          <input type="number" class="mobile-score-input" data-field="garrisons" min="0" value="${e.garrisons}">
+        </div>
+        <div class="mobile-field">
+          <label>Kaugem kill</label>
+          <input type="number" class="mobile-score-input" data-field="longest_kill" min="0" value="${e.longest_kill || 0}">
+        </div>
+        ${bonus ? '<div class="mobile-bonus-tag">+1 boonus: kaugeim kill</div>' : ''}
+      </div>
+      <div class="mobile-player-footer">
+        <button class="btn btn-secondary" data-mobile-delete="${e.id || ''}">Eemalda</button>
+      </div>
+    `;
+
+    containerEl.appendChild(card);
+  });
+}
+
+// Kogu mobiilsetest kaartidest andmed
+function collectMobilePayloads(containerEl) {
+  const cards = [...containerEl.querySelectorAll('.mobile-player-card')];
+  const result = [];
+
+  cards.forEach(card => {
+    const nameEl = card.querySelector('.mobile-player-name');
+    const inputs = card.querySelectorAll('.mobile-score-input');
+    if (!nameEl || !inputs.length) return;
+
+    const player_name = nameEl.textContent.trim();
+    const data = { player_name };
+
+    inputs.forEach(inp => {
+      const field = inp.dataset.field;
+      const val = Number(inp.value) || 0;
+      data[field] = val;
+    });
+
+    result.push(data);
+  });
+
+  return result;
+}
+
+/* ===========================
+   Mobiilne live recalc
+   =========================== */
+function recalcMobileFromCards(containerEl) {
+  if (!containerEl) return;
+  const cards = [...containerEl.querySelectorAll('.mobile-player-card')];
+  const cardData = [];
+
+  cards.forEach(card => {
+    const nameEl = card.querySelector('.mobile-player-name');
+    const inputs = card.querySelectorAll('.mobile-score-input');
+    if (!nameEl || !inputs.length) return;
+
+    const player_name = nameEl.textContent.trim();
+    const data = { card, player_name };
+    inputs.forEach(inp => {
+      const field = inp.dataset.field;
+      data[field] = Number(inp.value) || 0;
+    });
+    cardData.push(data);
+  });
+
+  if (!cardData.length) return;
+
+  const maxLongest = cardData.reduce((m, d) => (d.longest_kill > m ? d.longest_kill : m), 0);
+
+  cardData.forEach(d => {
+    const base = d.kills + d.outposts * 3 + d.garrisons * 6;
+    const bonus = maxLongest > 0 && d.longest_kill === maxLongest ? 1 : 0;
+    d.total = base + bonus;
+  });
+
+  const uniqueTotals = [...new Set(cardData.map(d => d.total))]
+    .filter(t => t > 0)
+    .sort((a, b) => b - a);
+
+  cards.forEach(c => c.classList.remove('rank-1', 'rank-2', 'rank-3', 'highlight'));
+
+  cardData.forEach(d => {
+    const card = d.card;
+    const totalEl = card.querySelector('.mobile-player-total');
+    if (totalEl) totalEl.textContent = d.total;
+
+    if (d.total === uniqueTotals[0] && uniqueTotals[0] > 0) card.classList.add('rank-1');
+    else if (uniqueTotals[1] !== undefined && d.total === uniqueTotals[1] && uniqueTotals[1] > 0) card.classList.add('rank-2');
+    else if (uniqueTotals[2] !== undefined && d.total === uniqueTotals[2] && uniqueTotals[2] > 0) card.classList.add('rank-3');
+
+    if (d.longest_kill === maxLongest && maxLongest > 0) card.classList.add('highlight');
+
+    const bonus = maxLongest > 0 && d.longest_kill === maxLongest ? 1 : 0;
+    const bonusEl = card.querySelector('.mobile-bonus-tag');
+    if (bonus) {
+      if (!bonusEl) {
+        const fields = card.querySelector('.mobile-player-fields');
+        if (fields) {
+          const div = document.createElement('div');
+          div.className = 'mobile-bonus-tag';
+          div.textContent = '+1 boonus: kaugeim kill';
+          fields.appendChild(div);
+        }
+      }
+    } else if (bonusEl) {
+      bonusEl.remove();
+    }
+  });
+}
