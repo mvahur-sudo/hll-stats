@@ -802,8 +802,11 @@ if (saveAllBtn && tbody) {
     console.log('[save] Nuppu vajutati');
     if (!currentGameId) { console.log('[save] Pole mängu valitud'); showToast("Mängu pole valitud.", "error", 4000); return; }
     const mobileContainer = document.getElementById('mobilePlayerCards');
-    const isMobile = mobileContainer && mobileContainer.querySelector('.mobile-player-card');
-    console.log('[save] isMobile:', isMobile, 'gameId:', currentGameId);
+    // Kontrolli nähtavust: mobiilsete kaartide container peab olema nähtaval
+const isMobile = mobileContainer && 
+  window.getComputedStyle(mobileContainer).display !== 'none' &&
+  mobileContainer.querySelector('.mobile-player-card');
+console.log('[save] isMobile:', !!isMobile, 'gameId:', currentGameId, '(display:', mobileContainer ? window.getComputedStyle(mobileContainer).display : 'N/A', ')');
 
     if (isMobile && typeof collectMobilePayloads !== 'function') {
       console.log('[save] collectMobilePayloads puudub');
