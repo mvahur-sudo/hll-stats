@@ -77,7 +77,16 @@ async function saveEntry(gameId, data) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   });
-  return handleJsonResponse(res);
+  if (!res.ok) {
+    // Kui sessioon on aegunud, suuna /login
+    if (res.status === 302 || res.redirected) {
+      window.location.href = '/login';
+      throw new Error('Sessioon aegunud, suunan sisselogimisele...');
+    }
+    const text = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${res.statusText} – ${text}`);
+  }
+  return res.json();
 }
 
 async function deleteEntry(entryId) {
