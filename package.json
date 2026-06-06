@@ -5,7 +5,8 @@
   "description": "Hell Let Loose squad statistics dashboard",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "backup": "cp hll_stats.db \"backups/hll_stats_$(date +%Y%m%d_%H%M%S).db\""
   },
   "dependencies": {
     "express": "^4.21.2",

@@ -1,12 +1,23 @@
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const PORT = process.env.PORT || 3124;
 
-// Ühine kood, millega lehele pääseb
-const ACCESS_CODE = 'smile';
+// Ühine kood, millega lehele pääseb (keskkonnamuutuja või vaikimisi 'smile')
+const ACCESS_CODE = process.env.ACCESS_CODE || 'smile';
+
+// Seansside haldus: { sessionId: { created: Date, player: string } }
+const sessions = new Map();
+setInterval(() => {
+  // Eemalda aegunud sessioonid (vanemad kui 24h)
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  for (const [id, data] of sessions) {
+    if (data.created < cutoff) sessions.delete(id);
+  }
+}, 60 * 60 * 1000); // iga tund
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -133,19 +144,32 @@ app.post('/login', (req, res) => {
   if (!code || code !== ACCESS_CODE) {
     return res.redirect('/login?error=1');
   }
-  // Õige kood -> sea cookie ja suuna avalehele
-  res.setHeader('Set-Cookie', 'hll_auth=1; HttpOnly; Path=/');
+  // Õige kood -> loo session ja sea cookie
+  const sessionId = crypto.randomUUID();
+  sessions.set(sessionId, { created: Date.now() });
+  res.setHeader('Set-Cookie', `hll_session=${sessionId}; HttpOnly; Path=/; SameSite=Lax`);
   res.redirect('/');
 });
 
-// --- AUTH MIDDLEWARE: kõik muu välja arvatud /login ja /health vajab cookie't ---
+// --- LOGOUT ---
+app.post('/logout', (req, res) => {
+  const cookieHeader = req.headers.cookie || '';
+  const match = cookieHeader.match(/hll_session=([^;]+)/);
+  if (match) {
+    sessions.delete(match[1]);
+  }
+  res.setHeader('Set-Cookie', 'hll_session=; HttpOnly; Path=/; Max-Age=0');
+  res.redirect('/login');
+});
+
+// --- AUTH MIDDLEWARE: kõik muu välja arvatud /login, /logout, /health ja /favicon.ico vajab sessiooni ---
 app.use((req, res, next) => {
-  if (req.path === '/login' || req.path === '/health' || req.path === '/favicon.ico') {
+  if (req.path === '/login' || req.path === '/logout' || req.path === '/health' || req.path === '/favicon.ico') {
     return next();
   }
   const cookieHeader = req.headers.cookie || '';
-  const authed = cookieHeader.split(';').some(c => c.trim().startsWith('hll_auth=1'));
-  if (authed) return next();
+  const match = cookieHeader.match(/hll_session=([^;]+)/);
+  if (match && sessions.has(match[1])) return next();
   res.redirect('/login');
 });
 
@@ -1327,6 +1351,40 @@ app.get('/api/stats/player/:name', (req, res) => {
       });
     });
   });
+});
+
+// --- ANDMEBAASI BACKUP / EXPORT ---
+app.get('/api/backup', (req, res) => {
+  const fs = require('fs');
+  const backupDir = path.join(__dirname, '.backups');
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupFile = path.join(backupDir, `hll_stats_${timestamp}.db`);
+
+  // SQLite kannatab WAL režiimis copyFile'i ilma db sulgemata
+  const srcFile = path.join(__dirname, 'hll_stats.db');
+  try {
+    fs.copyFileSync(srcFile, backupFile);
+    console.log(`Backup saved: ${backupFile}`);
+    res.json({ message: 'Backup created', file: `hll_stats_${timestamp}.db` });
+  } catch (copyErr) {
+    console.error('Backup error copying file:', copyErr);
+    return res.status(500).json({ error: 'Backup copy failed: ' + copyErr.message });
+  }
+});
+
+// Lae backup alla failina
+app.get('/api/backup/download', (req, res) => {
+  const fs = require('fs');
+  const srcFile = path.join(__dirname, 'hll_stats.db');
+  if (!fs.existsSync(srcFile)) {
+    return res.status(404).json({ error: 'Database not found' });
+  }
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  res.download(srcFile, `hll_stats_${timestamp}.db`);
 });
 
 // --- käivitus ---
