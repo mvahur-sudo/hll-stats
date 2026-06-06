@@ -807,6 +807,8 @@ if (saveAllBtn && tbody) {
       return;
     }
 
+    // Väike viivitus, et input väärtused jõuaks DOM-i
+    await new Promise(r => setTimeout(r, 50));
     const snap = isMobile ? captureMobileEdits(mobileContainer) : captureTableEdits(tbody);
     const payload = isMobile ? collectMobilePayloads(mobileContainer) : collectTablePayloads(tbody);
     console.log('[save] payload:', JSON.stringify(payload));
