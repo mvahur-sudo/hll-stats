@@ -133,24 +133,33 @@ if (typeof window.formatGameLabel !== 'function') {
    Snapshot & restore salvestamata sisenditele
    =========================== */
 function captureTableEdits(tbodyEl) {
+  console.log('[captureTableEdits] alustan, tbody:', !!tbodyEl);
   const snap = new Map();
   if (!tbodyEl) return snap;
-  // eeldame, et renderTable jätab <tr data-player-name="..."> + .score-input väljad
-  tbodyEl.querySelectorAll("tr[data-player-name]").forEach(tr => {
+  const rows = tbodyEl.querySelectorAll("tr[data-player-name]");
+  console.log('[captureTableEdits] leitud ridu:', rows.length);
+  rows.forEach(tr => {
     const name = tr.dataset.playerName;
     if (!name) return;
     const inputs = tr.querySelectorAll(".score-input");
-    const asInt = (el) => {
-      const n = Number(el?.value ?? 0);
+    console.log('[captureTableEdits] mängija:', name, 'inpute:', inputs.length);
+    inputs.forEach((inp, i) => {
+      console.log('[captureTableEdits]', name, 'input', i, 'value:', inp.value, 'dataset.field:', inp.dataset.field);
+    });
+    const asInt = (el, label) => {
+      const raw = el?.value;
+      const n = Number(raw ?? 0);
+      console.log('[captureTableEdits]', name, label, '=', 'raw:', raw, 'num:', n);
       return Number.isFinite(n) ? n : 0;
     };
     snap.set(name, {
-      kills:       asInt(inputs[0]),
-      outposts:    asInt(inputs[1]),
-      garrisons:   asInt(inputs[2]),
-      longest_kill:asInt(inputs[3]),
+      kills:       asInt(inputs[0], 'kills'),
+      outposts:    asInt(inputs[1], 'outposts'),
+      garrisons:   asInt(inputs[2], 'garrisons'),
+      longest_kill:asInt(inputs[3], 'longest_kill'),
     });
   });
+  console.log('[captureTableEdits] snap:', JSON.stringify(Array.from(snap.entries())));
   return snap;
 }
 
