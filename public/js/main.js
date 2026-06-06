@@ -1109,6 +1109,18 @@ async function openPlayerModal(playerName, windowKey) {
     await loadPlayers();
     await loadGames();
     await loadStats();
+
+    // Laadi versioon ja kuva bänneris
+    try {
+      const res = await fetch('/api/version');
+      if (res.ok) {
+        const data = await res.json();
+        const el = document.getElementById('versionText');
+        if (el) el.textContent = 'v' + data.version;
+      }
+    } catch (verr) {
+      // versiooni pärimine pole kriitiline
+    }
   } catch (err) {
     console.error("Initial load failed", err);
     showToast("Alglaadimine ebaõnnestus. Vaata konsooli.", "error", 6000);
