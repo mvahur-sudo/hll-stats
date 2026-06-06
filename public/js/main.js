@@ -786,36 +786,46 @@ if (gamesSelect) {
 // Salvesta kõik
 if (saveAllBtn && tbody) {
   saveAllBtn.addEventListener("click", async () => {
-    if (!currentGameId) { showToast("Mängu pole valitud.", "error", 4000); return; }
+    console.log('[save] Nuppu vajutati');
+    if (!currentGameId) { console.log('[save] Pole mängu valitud'); showToast("Mängu pole valitud.", "error", 4000); return; }
     const mobileContainer = document.getElementById('mobilePlayerCards');
     const isMobile = mobileContainer && mobileContainer.querySelector('.mobile-player-card');
+    console.log('[save] isMobile:', isMobile, 'gameId:', currentGameId);
 
     if (isMobile && typeof collectMobilePayloads !== 'function') {
+      console.log('[save] collectMobilePayloads puudub');
       showToast("Mobiilse tabeli kogumise funktsioon puudub.", "error", 5000);
       return;
     }
     if (!isMobile && typeof collectTablePayloads !== 'function') {
+      console.log('[save] collectTablePayloads puudub');
       showToast("Tabeli sisu kogumise funktsioon puudub.", "error", 5000);
       return;
     }
 
     const snap = isMobile ? captureMobileEdits(mobileContainer) : captureTableEdits(tbody);
     const payload = isMobile ? collectMobilePayloads(mobileContainer) : collectTablePayloads(tbody);
-    if (!payload.length) { showToast("Tabel on tühi.", "info", 3500); return; }
+    console.log('[save] payload:', JSON.stringify(payload));
+    if (!payload.length) { console.log('[save] Payload tühi'); showToast("Tabel on tühi.", "info", 3500); return; }
     try {
-      if (typeof saveEntry !== 'function') return;
-      await Promise.all(payload.map(row => saveEntry(currentGameId, row)));
+      if (typeof saveEntry !== 'function') { console.log('[save] saveEntry puudub'); return; }
+      console.log('[save] Alustan salvestamist...');
+      const results = await Promise.all(payload.map(row => saveEntry(currentGameId, row)));
+      console.log('[save] Vastused serverist:', results.map(r => r.status));
       await loadEntries();
+      console.log('[save] loadEntries valmis');
       // Taasta väärtused pärast uuesti laadimist
       if (isMobile) {
         restoreMobileEdits(snap, mobileContainer);
+        console.log('[save] mobiilne restore tehtud');
       } else {
         restoreTableEdits(snap, tbody);
+        console.log('[save] desktop restore tehtud');
       }
       await loadStats();
       showToast("Salvestatud!", "success");
     } catch (err) {
-      console.error(err);
+      console.error('[save] VIGA:', err);
       showToast("Salvestamine ebaõnnestus: " + (err?.message || err), "error", 5000);
     }
   });
