@@ -1,10 +1,20 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const PORT = process.env.PORT || 3124;
+
+// Versioon package.json-st
+let APP_VERSION = '0.0.0';
+try {
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+  APP_VERSION = pkg.version || '0.0.0';
+} catch (e) {
+  console.error('Could not read version from package.json');
+}
 
 // Ühine kood, millega lehele pääseb (keskkonnamuutuja või vaikimisi 'smile')
 const ACCESS_CODE = process.env.ACCESS_CODE || 'smile';
@@ -1387,7 +1397,12 @@ app.get('/api/backup/download', (req, res) => {
   res.download(srcFile, `hll_stats_${timestamp}.db`);
 });
 
+// --- VERSIOON ---
+app.get('/api/version', (req, res) => {
+  res.json({ version: APP_VERSION });
+});
+
 // --- käivitus ---
 app.listen(PORT, () => {
-  console.log(`Hell Let Loose stats server kuulab porti ${PORT}`);
+  console.log(`Hell Let Loose stats server v${APP_VERSION} kuulab porti ${PORT}`);
 });
