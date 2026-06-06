@@ -3,6 +3,10 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [main]
+  workflow_dispatch: # võimaldab käsitsi käivitada
+
+# Ära käivitu bump commit'idel mis sisaldavad [skip ci]
+# (GitHub ei aktsepteeri workflow filterit, aga me kontrollime bump stepis)
 
 env:
   REGISTRY: ghcr.io
@@ -33,7 +37,7 @@ jobs:
           NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
           node -e "const p=require('./package.json');p.version='${NEW_VERSION}';require('fs').writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
           git add package.json
-          git commit -m "Bump version to ${NEW_VERSION}"
+          git commit -m "Bump version to ${NEW_VERSION} [skip ci]"
           git push
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
 
