@@ -49,8 +49,10 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout bumped code
+        uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
 
       - name: Log in to GHCR
