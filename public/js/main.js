@@ -172,6 +172,48 @@ function restoreTableEdits(snap, tbodyEl) {
   }
 }
 
+/* --- Mobiilne snapshot / restore --- */
+function captureMobileEdits(containerEl) {
+  const snap = new Map();
+  if (!containerEl) return snap;
+  containerEl.querySelectorAll('.mobile-player-card').forEach(card => {
+    const nameEl = card.querySelector('.mobile-player-name');
+    if (!nameEl) return;
+    const name = nameEl.textContent.trim();
+    const inputs = card.querySelectorAll('.mobile-score-input');
+    const asInt = (el) => {
+      const n = Number(el?.value ?? 0);
+      return Number.isFinite(n) ? n : 0;
+    };
+    snap.set(name, {
+      kills:       asInt(inputs[0]),
+      outposts:    asInt(inputs[1]),
+      garrisons:   asInt(inputs[2]),
+      longest_kill:asInt(inputs[3]),
+    });
+  });
+  return snap;
+}
+
+function restoreMobileEdits(snap, containerEl) {
+  if (!containerEl || !snap || snap.size === 0) return;
+  containerEl.querySelectorAll('.mobile-player-card').forEach(card => {
+    const nameEl = card.querySelector('.mobile-player-name');
+    if (!nameEl) return;
+    const name = nameEl.textContent.trim();
+    const data = snap.get(name);
+    if (!data) return;
+    const inputs = card.querySelectorAll('.mobile-score-input');
+    if (inputs[0]) inputs[0].value = data.kills ?? 0;
+    if (inputs[1]) inputs[1].value = data.outposts ?? 0;
+    if (inputs[2]) inputs[2].value = data.garrisons ?? 0;
+    if (inputs[3]) inputs[3].value = data.longest_kill ?? 0;
+  });
+  if (typeof recalcMobileFromCards === 'function') {
+    recalcMobileFromCards(containerEl);
+  }
+}
+
 /* ===========================
    Andmete laadimine backendist
    =========================== */
@@ -745,26 +787,31 @@ if (gamesSelect) {
 if (saveAllBtn && tbody) {
   saveAllBtn.addEventListener("click", async () => {
     if (!currentGameId) { showToast("Mängu pole valitud.", "error", 4000); return; }
-    if (typeof collectTablePayloads !== 'function') {
+    const mobileContainer = document.getElementById('mobilePlayerCards');
+    const isMobile = mobileContainer && mobileContainer.querySelector('.mobile-player-card');
+
+    if (isMobile && typeof collectMobilePayloads !== 'function') {
+      showToast("Mobiilse tabeli kogumise funktsioon puudub.", "error", 5000);
+      return;
+    }
+    if (!isMobile && typeof collectTablePayloads !== 'function') {
       showToast("Tabeli sisu kogumise funktsioon puudub.", "error", 5000);
       return;
     }
-    const mobileContainer = document.getElementById('mobilePlayerCards');
-    let payload;
-    if (mobileContainer && mobileContainer.querySelector('.mobile-player-card')) {
-      if (typeof collectMobilePayloads !== 'function') {
-        showToast("Mobiilse tabeli kogumise funktsioon puudub.", "error", 5000);
-        return;
-      }
-      payload = collectMobilePayloads(mobileContainer);
-    } else {
-      payload = collectTablePayloads(tbody);
-    }
+
+    const snap = isMobile ? captureMobileEdits(mobileContainer) : captureTableEdits(tbody);
+    const payload = isMobile ? collectMobilePayloads(mobileContainer) : collectTablePayloads(tbody);
     if (!payload.length) { showToast("Tabel on tühi.", "info", 3500); return; }
     try {
       if (typeof saveEntry !== 'function') return;
       await Promise.all(payload.map(row => saveEntry(currentGameId, row)));
       await loadEntries();
+      // Taasta väärtused pärast uuesti laadimist
+      if (isMobile) {
+        restoreMobileEdits(snap, mobileContainer);
+      } else {
+        restoreTableEdits(snap, tbody);
+      }
       await loadStats();
       showToast("Salvestatud!", "success");
     } catch (err) {
