@@ -72,21 +72,21 @@ async function fetchEntries(gameId) {
 }
 
 async function saveEntry(gameId, data) {
+  console.log('[saveEntry] saadan:', JSON.stringify(data));
   const res = await fetch(API_BASE + `/api/games/${gameId}/entries`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   });
+  console.log('[saveEntry] vastus:', res.status, res.redirected);
   if (!res.ok) {
-    // Kui sessioon on aegunud, suuna /login
-    if (res.status === 302 || res.redirected) {
-      window.location.href = '/login';
-      throw new Error('Sessioon aegunud, suunan sisselogimisele...');
-    }
     const text = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${res.statusText} – ${text}`);
+    console.log('[saveEntry] viga keha:', text.substring(0,100));
+    throw new Error(`Salvestamine ebaõnnestus (${res.status}): ${text.substring(0,100)}`);
   }
-  return res.json();
+  const json = await res.json();
+  console.log('[saveEntry] JSON:', json);
+  return json;
 }
 
 async function deleteEntry(entryId) {
