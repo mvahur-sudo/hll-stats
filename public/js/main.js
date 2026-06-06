@@ -181,8 +181,11 @@ function captureMobileEdits(containerEl) {
     if (!nameEl) return;
     const name = nameEl.textContent.trim();
     const inputs = card.querySelectorAll('.mobile-score-input');
+    console.log('[snap] mängija:', name, 'inpute leitud:', inputs.length);
     const asInt = (el) => {
-      const n = Number(el?.value ?? 0);
+      const raw = el?.value;
+      console.log('[snap]', name, el?.dataset?.field, '=', raw);
+      const n = Number(raw ?? 0);
       return Number.isFinite(n) ? n : 0;
     };
     snap.set(name, {
@@ -192,6 +195,7 @@ function captureMobileEdits(containerEl) {
       longest_kill:asInt(inputs[3]),
     });
   });
+  console.log('[snap] lõpptulemus:', JSON.stringify(Array.from(snap.entries())));
   return snap;
 }
 
