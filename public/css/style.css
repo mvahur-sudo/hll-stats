@@ -797,7 +797,7 @@ button[tabindex="-1"] { outline: none; }
 
 @media (max-width: 768px) {
   .container {
-    padding: 0 0.6rem 6rem;
+    padding: 0 0.6rem 8rem;
   }
 
   h1 {
