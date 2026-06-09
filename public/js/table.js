@@ -174,11 +174,11 @@ function renderTable(entries, tbodyEl) {
     tr.innerHTML = `
       <td class="pos-cell">${index + 1}</td>
       <td class="name-cell">${e.player_name}</td>
-      <td><input type="number" class="score-input" data-field="kills" min="0" value="${e.kills}"></td>
-      <td><input type="number" class="score-input" data-field="deaths" min="0" value="${e.deaths}"></td>
-      <td><input type="number" class="score-input" data-field="outposts" min="0" value="${e.outposts}"></td>
-      <td><input type="number" class="score-input" data-field="garrisons" min="0" value="${e.garrisons}"></td>
-      <td><input type="number" class="score-input" data-field="longest_kill" min="0" value="${e.longest_kill || 0}"></td>
+      <td><input type="number" class="score-input" data-field="kills" min="0" value="${e.kills}" inputmode="numeric" pattern="[0-9]*"></td>
+      <td><input type="number" class="score-input" data-field="deaths" min="0" value="${e.deaths}" inputmode="numeric" pattern="[0-9]*"></td>
+      <td><input type="number" class="score-input" data-field="outposts" min="0" value="${e.outposts}" inputmode="numeric" pattern="[0-9]*"></td>
+      <td><input type="number" class="score-input" data-field="garrisons" min="0" value="${e.garrisons}" inputmode="numeric" pattern="[0-9]*"></td>
+      <td><input type="number" class="score-input" data-field="longest_kill" min="0" value="${e.longest_kill || 0}" inputmode="numeric" pattern="[0-9]*"></td>
       <td class="bonus-cell">${formatScoreNote(e)}</td>
       <td class="total-cell">${e.total}</td>
       <td><button class="btn btn-secondary" data-delete="${e.id || ''}" tabindex="-1">X</button></td>
