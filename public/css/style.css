@@ -338,31 +338,6 @@ button[tabindex="-1"] { outline: none; }
     appearance: none;
   }
 
-  /* + / - nupud */
-  .score-stepper {
-    display: flex;
-    gap: 0.25rem;
-  }
-  .score-stepper button {
-    width: 34px;
-    height: 34px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-dim);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 1.1rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-  }
-  .score-stepper button:active { background: var(--border); }
-  .score-stepper .step-up   { color: var(--accent-2); border-color: rgba(34,197,94,0.3); }
-  .score-stepper .step-down { color: var(--danger);    border-color: rgba(248,113,113,0.3); }
-
   /* Bonus/total rida */
   .scores-table td.bonus-cell {
     margin-top: 0.35rem;
