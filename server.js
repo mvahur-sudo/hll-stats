@@ -1,23 +1,12 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const PORT = process.env.PORT || 3124;
 
-// Versioon package.json-st
-let APP_VERSION = '0.0.0';
-try {
-  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-  APP_VERSION = pkg.version || '0.0.0';
-} catch (e) {
-  console.error('Could not read version from package.json');
-}
-
-// Ühine kood, millega lehele pääseb (keskkonnamuutuja või vaikimisi 'smile')
-const ACCESS_CODE = process.env.ACCESS_CODE || 'smile';
+// Ühine kood, millega lehele pääseb
+const ACCESS_CODE = 'smile';
 
 const CHALLENGE_NORMAL = 'normal';
 const CHALLENGE_KILL_DEATH = 'kill_death';
@@ -56,6 +45,7 @@ function calculateScore(row, maxLongest = 0) {
   if (challenge === CHALLENGE_KILL_DEATH) {
     const base = kills;
     const penalty = deaths * 2;
+    const total = base - penalty;
     return {
       challenge,
       kills,
@@ -66,13 +56,14 @@ function calculateScore(row, maxLongest = 0) {
       base,
       bonus: 0,
       penalty,
-      total: base - penalty,
+      total,
       hasActivity: kills > 0 || deaths > 0
     };
   }
 
   const base = kills + outposts * 3 + garrisons * 6;
   const bonus = maxLongest > 0 && longestKill === maxLongest ? 1 : 0;
+  const total = base + bonus;
   return {
     challenge,
     kills,
@@ -83,7 +74,7 @@ function calculateScore(row, maxLongest = 0) {
     base,
     bonus,
     penalty: 0,
-    total: base + bonus,
+    total,
     hasActivity: base > 0 || bonus > 0
   };
 }
@@ -120,16 +111,6 @@ function aggregatePlayerScores(rows) {
 
   return Array.from(players.values()).sort((a, b) => a.player_name.localeCompare(b.player_name));
 }
-
-// Seansside haldus: { sessionId: { created: Date, player: string } }
-const sessions = new Map();
-setInterval(() => {
-  // Eemalda aegunud sessioonid (vanemad kui 24h)
-  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-  for (const [id, data] of sessions) {
-    if (data.created < cutoff) sessions.delete(id);
-  }
-}, 60 * 60 * 1000); // iga tund
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -256,32 +237,19 @@ app.post('/login', (req, res) => {
   if (!code || code !== ACCESS_CODE) {
     return res.redirect('/login?error=1');
   }
-  // Õige kood -> loo session ja sea cookie
-  const sessionId = crypto.randomUUID();
-  sessions.set(sessionId, { created: Date.now() });
-  res.setHeader('Set-Cookie', `hll_session=${sessionId}; HttpOnly; Path=/; SameSite=Lax`);
+  // Õige kood -> sea cookie ja suuna avalehele
+  res.setHeader('Set-Cookie', 'hll_auth=1; HttpOnly; Path=/');
   res.redirect('/');
 });
 
-// --- LOGOUT ---
-app.post('/logout', (req, res) => {
-  const cookieHeader = req.headers.cookie || '';
-  const match = cookieHeader.match(/hll_session=([^;]+)/);
-  if (match) {
-    sessions.delete(match[1]);
-  }
-  res.setHeader('Set-Cookie', 'hll_session=; HttpOnly; Path=/; Max-Age=0');
-  res.redirect('/login');
-});
-
-// --- AUTH MIDDLEWARE: kõik muu välja arvatud /login, /logout, /health ja /favicon.ico vajab sessiooni ---
+// --- AUTH MIDDLEWARE: kõik muu välja arvatud /login ja /health vajab cookie't ---
 app.use((req, res, next) => {
-  if (req.path === '/login' || req.path === '/logout' || req.path === '/health' || req.path === '/favicon.ico') {
+  if (req.path === '/login' || req.path === '/health' || req.path === '/favicon.ico') {
     return next();
   }
   const cookieHeader = req.headers.cookie || '';
-  const match = cookieHeader.match(/hll_session=([^;]+)/);
-  if (match && sessions.has(match[1])) return next();
+  const authed = cookieHeader.split(';').some(c => c.trim().startsWith('hll_auth=1'));
+  if (authed) return next();
   res.redirect('/login');
 });
 
@@ -1505,46 +1473,7 @@ app.get('/api/stats/player/:name', (req, res) => {
   });
 });
 
-// --- ANDMEBAASI BACKUP / EXPORT ---
-app.get('/api/backup', (req, res) => {
-  const fs = require('fs');
-  const backupDir = path.join(__dirname, '.backups');
-  if (!fs.existsSync(backupDir)) {
-    fs.mkdirSync(backupDir, { recursive: true });
-  }
-
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupFile = path.join(backupDir, `hll_stats_${timestamp}.db`);
-
-  // SQLite kannatab WAL režiimis copyFile'i ilma db sulgemata
-  const srcFile = path.join(__dirname, 'hll_stats.db');
-  try {
-    fs.copyFileSync(srcFile, backupFile);
-    console.log(`Backup saved: ${backupFile}`);
-    res.json({ message: 'Backup created', file: `hll_stats_${timestamp}.db` });
-  } catch (copyErr) {
-    console.error('Backup error copying file:', copyErr);
-    return res.status(500).json({ error: 'Backup copy failed: ' + copyErr.message });
-  }
-});
-
-// Lae backup alla failina
-app.get('/api/backup/download', (req, res) => {
-  const fs = require('fs');
-  const srcFile = path.join(__dirname, 'hll_stats.db');
-  if (!fs.existsSync(srcFile)) {
-    return res.status(404).json({ error: 'Database not found' });
-  }
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  res.download(srcFile, `hll_stats_${timestamp}.db`);
-});
-
-// --- VERSIOON ---
-app.get('/api/version', (req, res) => {
-  res.json({ version: APP_VERSION });
-});
-
 // --- käivitus ---
 app.listen(PORT, () => {
-  console.log(`Hell Let Loose stats server v${APP_VERSION} kuulab porti ${PORT}`);
+  console.log(`Hell Let Loose stats server kuulab porti ${PORT}`);
 });

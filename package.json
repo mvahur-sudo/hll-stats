@@ -1,12 +1,11 @@
 {
   "name": "hll-stats",
-  "version": "1.0.18",
+  "version": "1.0.0",
   "private": true,
   "description": "Hell Let Loose squad statistics dashboard",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "backup": "cp hll_stats.db \"backups/hll_stats_$(date +%Y%m%d_%H%M%S).db\""
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.21.2",

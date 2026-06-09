@@ -72,21 +72,12 @@ async function fetchEntries(gameId) {
 }
 
 async function saveEntry(gameId, data) {
-  console.log('[saveEntry] saadan:', JSON.stringify(data));
   const res = await fetch(API_BASE + `/api/games/${gameId}/entries`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   });
-  console.log('[saveEntry] vastus:', res.status, res.redirected);
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    console.log('[saveEntry] viga keha:', text.substring(0,100));
-    throw new Error(`Salvestamine ebaõnnestus (${res.status}): ${text.substring(0,100)}`);
-  }
-  const json = await res.json();
-  console.log('[saveEntry] JSON:', json);
-  return json;
+  return handleJsonResponse(res);
 }
 
 async function deleteEntry(entryId) {

@@ -19,8 +19,7 @@ const MAPS = [
   "Smolentsk",
   "Stalingrad",
   "Tobruk",
-  "Utah Beach",
-  "Juno Beach"
+  "Utah Beach"
 ];
 
 // Täida kaardi valiku dropdown

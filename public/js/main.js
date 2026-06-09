@@ -140,34 +140,25 @@ if (typeof window.formatGameLabel !== 'function') {
    Snapshot & restore salvestamata sisenditele
    =========================== */
 function captureTableEdits(tbodyEl) {
-  console.log('[captureTableEdits] alustan, tbody:', !!tbodyEl);
   const snap = new Map();
   if (!tbodyEl) return snap;
-  const rows = tbodyEl.querySelectorAll("tr[data-player-name]");
-  console.log('[captureTableEdits] leitud ridu:', rows.length);
-  rows.forEach(tr => {
+  // eeldame, et renderTable jätab <tr data-player-name="..."> + .score-input väljad
+  tbodyEl.querySelectorAll("tr[data-player-name]").forEach(tr => {
     const name = tr.dataset.playerName;
     if (!name) return;
     const inputs = tr.querySelectorAll(".score-input");
-    console.log('[captureTableEdits] mängija:', name, 'inpute:', inputs.length);
-    inputs.forEach((inp, i) => {
-      console.log('[captureTableEdits]', name, 'input', i, 'value:', inp.value, 'dataset.field:', inp.dataset.field);
-    });
-    const asInt = (el, label) => {
-      const raw = el?.value;
-      const n = Number(raw ?? 0);
-      console.log('[captureTableEdits]', name, label, '=', 'raw:', raw, 'num:', n);
+    const asInt = (el) => {
+      const n = Number(el?.value ?? 0);
       return Number.isFinite(n) ? n : 0;
     };
     snap.set(name, {
-      kills:       asInt(inputs[0], 'kills'),
-      deaths:      asInt(inputs[1], 'deaths'),
-      outposts:    asInt(inputs[2], 'outposts'),
-      garrisons:   asInt(inputs[3], 'garrisons'),
-      longest_kill:asInt(inputs[4], 'longest_kill'),
+      kills:       asInt(inputs[0]),
+      deaths:      asInt(inputs[1]),
+      outposts:    asInt(inputs[2]),
+      garrisons:   asInt(inputs[3]),
+      longest_kill:asInt(inputs[4]),
     });
   });
-  console.log('[captureTableEdits] snap:', JSON.stringify(Array.from(snap.entries())));
   return snap;
 }
 
@@ -187,54 +178,6 @@ function restoreTableEdits(snap, tbodyEl) {
   // uuenda arvutatud veerge, kui sul on vastav funktsioon
   if (typeof recalcFromTable === 'function') {
     recalcFromTable(tbodyEl);
-  }
-}
-
-/* --- Mobiilne snapshot / restore --- */
-function captureMobileEdits(containerEl) {
-  const snap = new Map();
-  if (!containerEl) return snap;
-  containerEl.querySelectorAll('.mobile-player-card').forEach(card => {
-    const nameEl = card.querySelector('.mobile-player-name');
-    if (!nameEl) return;
-    const name = nameEl.textContent.trim();
-    const inputs = card.querySelectorAll('.mobile-score-input');
-    console.log('[snap] mängija:', name, 'inpute leitud:', inputs.length);
-    const asInt = (el) => {
-      const raw = el?.value;
-      console.log('[snap]', name, el?.dataset?.field, '=', raw);
-      const n = Number(raw ?? 0);
-      return Number.isFinite(n) ? n : 0;
-    };
-    snap.set(name, {
-      kills:       asInt(inputs[0]),
-      deaths:      asInt(inputs[1]),
-      outposts:    asInt(inputs[2]),
-      garrisons:   asInt(inputs[3]),
-      longest_kill:asInt(inputs[4]),
-    });
-  });
-  console.log('[snap] lõpptulemus:', JSON.stringify(Array.from(snap.entries())));
-  return snap;
-}
-
-function restoreMobileEdits(snap, containerEl) {
-  if (!containerEl || !snap || snap.size === 0) return;
-  containerEl.querySelectorAll('.mobile-player-card').forEach(card => {
-    const nameEl = card.querySelector('.mobile-player-name');
-    if (!nameEl) return;
-    const name = nameEl.textContent.trim();
-    const data = snap.get(name);
-    if (!data) return;
-    const inputs = card.querySelectorAll('.mobile-score-input');
-    if (inputs[0]) inputs[0].value = data.kills ?? 0;
-    if (inputs[1]) inputs[1].value = data.deaths ?? 0;
-    if (inputs[2]) inputs[2].value = data.outposts ?? 0;
-    if (inputs[3]) inputs[3].value = data.garrisons ?? 0;
-    if (inputs[4]) inputs[4].value = data.longest_kill ?? 0;
-  });
-  if (typeof recalcMobileFromCards === 'function') {
-    recalcMobileFromCards(containerEl);
   }
 }
 
@@ -306,18 +249,10 @@ async function loadEntries() {
   if (typeof fetchEntries !== 'function') return;
 
   const entries = await fetchEntries(currentGameId);
-  const mobileContainer = document.getElementById('mobilePlayerCards');
 
   if (typeof renderTable === 'function') {
     renderTable(entries, tbody);
-  }
-
-  // Render mobiilikaardid
-  if (typeof renderMobileCards === 'function' && mobileContainer) {
-    renderMobileCards(entries, mobileContainer);
-  }
-
-  if (typeof renderTable !== 'function') {
+  } else {
     // Fallback render (kui renderTable puudub)
     tbody.innerHTML = "";
     entries.forEach((e, idx) => {
@@ -326,25 +261,16 @@ async function loadEntries() {
       tr.innerHTML = `
         <td>${idx + 1}</td>
         <td>${e.player_name}</td>
-        <td><input class="score-input" data-field="kills" type="number" min="0" value="${e.kills||0}"></td>
-        <td><input class="score-input" data-field="deaths" type="number" min="0" value="${e.deaths||0}"></td>
-        <td><input class="score-input" data-field="outposts" type="number" min="0" value="${e.outposts||0}"></td>
-        <td><input class="score-input" data-field="garrisons" type="number" min="0" value="${e.garrisons||0}"></td>
-        <td><input class="score-input" data-field="longest_kill" type="number" min="0" value="${e.longest_kill||0}"></td>
+        <td><input class="score-input" type="number" min="0" value="${e.kills||0}"></td>
+        <td><input class="score-input" type="number" min="0" value="${e.deaths||0}"></td>
+        <td><input class="score-input" type="number" min="0" value="${e.outposts||0}"></td>
+        <td><input class="score-input" type="number" min="0" value="${e.garrisons||0}"></td>
+        <td><input class="score-input" type="number" min="0" value="${e.longest_kill||0}"></td>
         <td class="bonus-cell"></td>
         <td class="total-cell"></td>
         <td><button data-delete="${e.id}" title="Eemalda sellest mängust">×</button></td>
       `;
       tbody.appendChild(tr);
-    });
-  }
-
-  // Seo mobiilsetele kaartidele live arvutus
-  if (mobileContainer) {
-    mobileContainer.addEventListener('input', e => {
-      if (e.target.classList && e.target.classList.contains('mobile-score-input')) {
-        recalcMobileFromCards(mobileContainer);
-      }
     });
   }
 
@@ -598,27 +524,15 @@ async function openGameOverlay(gameId) {
     const game = (games || []).find(g => String(g.id) === String(gameId));
     if (!game) throw new Error('Mängu ei leitud');
 
-    const challenge = game.challenge || (entries || []).find(e => e.challenge)?.challenge || 'normal';
-    const sourceRows = (entries || []).map(e => ({ ...e, challenge }));
-    const rows = typeof calculateScores === 'function'
-      ? calculateScores(sourceRows, challenge).map(row => ({ ...row, score: row.total }))
-      : sourceRows.map(e => ({
-          ...e,
-          kills: Number(e.kills) || 0,
-          deaths: Number(e.deaths) || 0,
-          outposts: Number(e.outposts) || 0,
-          garrisons: Number(e.garrisons) || 0,
-          longest_kill: Number(e.longest_kill) || 0,
-          bonus: 0,
-          penalty: challenge === 'kill_death' ? (Number(e.deaths) || 0) * 2 : 0,
-          score: challenge === 'kill_death'
-            ? (Number(e.kills) || 0) - (Number(e.deaths) || 0) * 2
-            : (Number(e.kills) || 0) + (Number(e.outposts) || 0) * 3 + (Number(e.garrisons) || 0) * 6
-        })).sort((a, b) => b.score - a.score || b.kills - a.kills || a.player_name.localeCompare(b.player_name));
+    const challenge = game.challenge || entries?.[0]?.challenge || 'normal';
+    const rows = (typeof calculateScores === 'function'
+      ? calculateScores((entries || []).map(e => ({ ...e, challenge })), challenge)
+      : (entries || [])
+    ).map(e => ({ ...e, score: e.total ?? e.score ?? 0 }));
 
     const totals = rows.reduce((acc, row) => {
       acc.kills += row.kills;
-      acc.deaths += row.deaths || 0;
+      acc.deaths += row.deaths;
       acc.outposts += row.outposts;
       acc.garrisons += row.garrisons;
       acc.score += row.score;
@@ -646,7 +560,7 @@ async function openGameOverlay(gameId) {
             <table class="overlay-table">
               <thead><tr><th>#</th><th>Mängija</th><th>Kills</th><th>Deaths</th><th>OP</th><th>Gar</th><th>Longest</th><th>Reegel</th><th>Score</th></tr></thead>
               <tbody>
-                ${rows.map((row, idx) => `<tr><td>${idx + 1}</td><td>${row.player_name}</td><td>${row.kills}</td><td>${row.deaths || 0}</td><td>${row.outposts}</td><td>${row.garrisons}</td><td>${row.longest_kill}</td><td>${typeof formatScoreNote === 'function' ? formatScoreNote(row) : (row.penalty ? '-' + row.penalty : row.bonus || '')}</td><td>${row.score}</td></tr>`).join('')}
+                ${rows.map((row, idx) => `<tr><td>${idx + 1}</td><td>${row.player_name}</td><td>${row.kills}</td><td>${row.deaths}</td><td>${row.outposts}</td><td>${row.garrisons}</td><td>${row.longest_kill}</td><td>${typeof formatScoreNote === 'function' ? formatScoreNote(row) : (row.bonus || '')}</td><td>${row.score}</td></tr>`).join('')}
               </tbody>
             </table>
           </div>
@@ -769,8 +683,8 @@ if (newGameBtn) {
   newGameBtn.addEventListener("click", async () => {
     const mapName = mapSelect ? mapSelect.value.trim() : "";
     const result = getSelectedResult();
-    const warmup = Boolean(warmupCheckbox?.checked);
     const challenge = getSelectedChallenge();
+    const warmup = Boolean(warmupCheckbox?.checked);
     if (!mapName) {
       showToast("Vali kaart.", "error", 4000);
       return;
@@ -817,51 +731,21 @@ if (gamesSelect) {
 // Salvesta kõik
 if (saveAllBtn && tbody) {
   saveAllBtn.addEventListener("click", async () => {
-    console.log('[save] Nuppu vajutati');
-    if (!currentGameId) { console.log('[save] Pole mängu valitud'); showToast("Mängu pole valitud.", "error", 4000); return; }
-    const mobileContainer = document.getElementById('mobilePlayerCards');
-    // Kontrolli nähtavust: mobiilsete kaartide container peab olema nähtaval
-const isMobile = mobileContainer && 
-  window.getComputedStyle(mobileContainer).display !== 'none' &&
-  mobileContainer.querySelector('.mobile-player-card');
-console.log('[save] isMobile:', !!isMobile, 'gameId:', currentGameId, '(display:', mobileContainer ? window.getComputedStyle(mobileContainer).display : 'N/A', ')');
-
-    if (isMobile && typeof collectMobilePayloads !== 'function') {
-      console.log('[save] collectMobilePayloads puudub');
-      showToast("Mobiilse tabeli kogumise funktsioon puudub.", "error", 5000);
-      return;
-    }
-    if (!isMobile && typeof collectTablePayloads !== 'function') {
-      console.log('[save] collectTablePayloads puudub');
+    if (!currentGameId) { showToast("Mängu pole valitud.", "error", 4000); return; }
+    if (typeof collectTablePayloads !== 'function') {
       showToast("Tabeli sisu kogumise funktsioon puudub.", "error", 5000);
       return;
     }
-
-    // Väike viivitus, et input väärtused jõuaks DOM-i
-    await new Promise(r => setTimeout(r, 50));
-    const snap = isMobile ? captureMobileEdits(mobileContainer) : captureTableEdits(tbody);
-    const payload = isMobile ? collectMobilePayloads(mobileContainer) : collectTablePayloads(tbody);
-    console.log('[save] payload:', JSON.stringify(payload));
-    if (!payload.length) { console.log('[save] Payload tühi'); showToast("Tabel on tühi.", "info", 3500); return; }
+    const payload = collectTablePayloads(tbody);
+    if (!payload.length) { showToast("Tabel on tühi.", "info", 3500); return; }
     try {
-      if (typeof saveEntry !== 'function') { console.log('[save] saveEntry puudub'); return; }
-      console.log('[save] Alustan salvestamist...');
-      const results = await Promise.all(payload.map(row => saveEntry(currentGameId, row)));
-      console.log('[save] Vastused serverist:', results.map(r => r.status));
+      if (typeof saveEntry !== 'function') return;
+      await Promise.all(payload.map(row => saveEntry(currentGameId, row)));
       await loadEntries();
-      console.log('[save] loadEntries valmis');
-      // Taasta väärtused pärast uuesti laadimist
-      if (isMobile) {
-        restoreMobileEdits(snap, mobileContainer);
-        console.log('[save] mobiilne restore tehtud');
-      } else {
-        restoreTableEdits(snap, tbody);
-        console.log('[save] desktop restore tehtud');
-      }
       await loadStats();
       showToast("Salvestatud!", "success");
     } catch (err) {
-      console.error('[save] VIGA:', err);
+      console.error(err);
       showToast("Salvestamine ebaõnnestus: " + (err?.message || err), "error", 5000);
     }
   });
@@ -988,7 +872,11 @@ function compareValue(a, b, suffix = "", lowerIsBetter = false) {
   const av = Number(a || 0);
   const bv = Number(b || 0);
   const diff = av - bv;
-  const cls = diff === 0 ? 'result-none' : ((diff > 0) !== lowerIsBetter ? 'result-win' : 'result-loss');
+  const cls = diff === 0
+    ? 'result-none'
+    : (lowerIsBetter ? diff < 0 : diff > 0)
+      ? 'result-win'
+      : 'result-loss';
   const sign = diff > 0 ? '+' : '';
   return `<span class="${cls}">${sign}${diff}${suffix}</span>`;
 }
@@ -1066,7 +954,7 @@ async function openPlayerModal(playerName, windowKey) {
                   <td>${m.losses}</td>
                   <td>${m.win_rate ?? 0}%</td>
                   <td>${m.kills}</td>
-                  <td>${m.deaths || 0}</td>
+                  <td>${m.deaths ?? 0}</td>
                   <td>${m.outposts}</td>
                   <td>${m.garrisons}</td>
                   <td>${m.longest_kill}</td>
@@ -1234,47 +1122,6 @@ async function openPlayerModal(playerName, windowKey) {
     await loadPlayers();
     await loadGames();
     await loadStats();
-
-    // Laadi versioon ja kuva bänneris
-    try {
-      const res = await fetch('/api/version');
-      if (res.ok) {
-        const data = await res.json();
-        const el = document.getElementById('versionText');
-        if (el) el.textContent = 'v' + data.version;
-      }
-    } catch (verr) {
-      // versiooni pärimine pole kriitiline
-    }
-
-    // Mobiilne roster collapse
-    const rosterCard = document.querySelector('.roster-card');
-    if (rosterCard && window.innerWidth <= 768) {
-      rosterCard.classList.add('collapsed');
-      rosterCard.querySelector('h2').addEventListener('click', () => {
-        rosterCard.classList.toggle('collapsed');
-      });
-    }
-
-    // Mobiilne mängija eemaldamine kaartidelt
-    const mobileContainer = document.getElementById('mobilePlayerCards');
-    if (mobileContainer) {
-      mobileContainer.addEventListener('click', async (e) => {
-        const btn = e.target.closest('button[data-mobile-delete]');
-        if (!btn) return;
-        const entryId = btn.dataset.mobileDelete;
-        if (!entryId) return;
-        try {
-          if (typeof deleteEntry === 'function') {
-            await deleteEntry(entryId);
-          }
-          await loadEntries();
-          await loadStats();
-        } catch (err) {
-          console.error(err);
-        }
-      });
-    }
   } catch (err) {
     console.error("Initial load failed", err);
     showToast("Alglaadimine ebaõnnestus. Vaata konsooli.", "error", 6000);

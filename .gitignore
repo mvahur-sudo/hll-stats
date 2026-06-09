@@ -1,5 +1,4 @@
 node_modules/
 hll_stats.db
-.backups/
 .env
 npm-debug.log*

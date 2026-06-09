@@ -12,16 +12,14 @@ Simple self-hosted Hell Let Loose squad statistics app.
   - outposts
   - garrisons
   - longest kill
-- Per-game challenge scoring modes:
+- Automatic score calculation with per-game challenges
   - normal: kills + outposts * 3 + garrisons * 6 + longest-kill bonus
-  - kill/death: kills - deaths * 2
-- Automatic score calculation per challenge
+  - kill/death: kills * 1 - deaths * 2
 - Map statistics
 - Player records and podium stats
 - Built-in SQLite database
-- Session-based authentication
+- Simple access-code login
 - Health endpoint at `/health`
-- Database backup and download
 
 ## Tech stack
 
@@ -30,7 +28,7 @@ Simple self-hosted Hell Let Loose squad statistics app.
 - SQLite
 - Plain HTML/CSS/JavaScript frontend
 
-## Quick start
+## Run locally
 
 ```bash
 npm install
@@ -39,7 +37,7 @@ npm start
 
 App starts on port `3124` by default.
 
-Override port:
+You can override it:
 
 ```bash
 PORT=8080 npm start
@@ -50,31 +48,26 @@ Open:
 - App: `http://localhost:3124`
 - Health: `http://localhost:3124/health`
 
-## Configuration
+## Login
 
-Set via environment variables:
+Current access code is defined in `server.js`:
 
-| Variable      | Default  | Description              |
-|---------------|----------|--------------------------|
-| `PORT`        | `3124`   | Server port              |
-| `ACCESS_CODE` | `smile`  | Login access code        |
+```js
+const ACCESS_CODE = 'smile';
+```
+
+For production, move this to an environment variable.
 
 ## Data storage
 
 SQLite database file is created automatically:
 
 - `hll_stats.db`
-- Backups are stored in `.backups/` directory
 
 ## API endpoints
 
 ### Health
 - `GET /health`
-
-### Authentication
-- `GET /login`
-- `POST /login`
-- `POST /logout`
 
 ### Players
 - `GET /api/players`
@@ -83,38 +76,23 @@ SQLite database file is created automatically:
 
 ### Games
 - `GET /api/games`
-- `POST /api/games` — accepts `map_name`, `result`, `warmup`, `challenge`
+- `POST /api/games`
 - `DELETE /api/games/:id`
 - `GET /api/games/:id/entries`
-- `POST /api/games/:id/entries` — accepts `player_name`, `kills`, `deaths`, `outposts`, `garrisons`, `longest_kill`
+- `POST /api/games/:id/entries`
 
 ### Entries
 - `DELETE /api/entries/:id`
 
 ### Stats
 - `GET /api/stats`
-- `GET /api/stats/maps`
 - `GET /api/maps/:map/games`
 - `GET /api/stats/player/:name?window=day|week|month|year`
 
-### Backup
-- `GET /api/backup` — create a backup copy
-- `GET /api/backup/download` — download current database
+## Recommended next improvements
 
-## Docker
-
-### Build locally
-
-```bash
-docker build -t hll-stats .
-docker run -p 3124:3124 -e ACCESS_CODE=mycode hll-stats
-```
-
-### GitHub Container Registry
-
-Pre-built images available at `ghcr.io/mvahur-sudo/hll-stats:latest`
-
-```bash
-docker pull ghcr.io/mvahur-sudo/hll-stats:latest
-docker run -p 3124:3124 -e ACCESS_CODE=mycode ghcr.io/mvahur-sudo/hll-stats:latest
-```
+- Move access code to `ACCESS_CODE` environment variable
+- Add proper session handling instead of simple auth cookie
+- Add Dockerfile and compose setup
+- Add export/backup for SQLite database
+- Add `.gitignore` for database and dependencies
