@@ -253,7 +253,7 @@ app.post('/login', (req, res) => {
 
 // --- AUTH MIDDLEWARE: kõik muu välja arvatud /login ja /health vajab cookie't ---
 app.use((req, res, next) => {
-  if (req.path === '/login' || req.path === '/health' || req.path === '/favicon.ico') {
+  if (req.path === '/login' || req.path === '/health' || req.path === '/favicon.ico' || req.path === '/api/version') {
     return next();
   }
   const cookieHeader = req.headers.cookie || '';
