@@ -158,6 +158,9 @@
   <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
   <div id="versionBanner" class="version-banner" aria-label="Versioon"></div>
+  <script>
+    (async function(){try{var r=await fetch('/api/version');var d=await r.json();var b=document.getElementById('versionBanner');if(b)b.textContent='v'+(d.version||'0.0.0');}catch(e){}})();
+  </script>
 
   <div id="playerModal" class="modal hidden">
   <div class="modal-backdrop" id="playerModalClose"></div>
