@@ -72,6 +72,7 @@
         <div class="map-stats-bar__item"><div class="map-stats-bar__value">${losses}</div><div class="map-stats-bar__label">Kaotusi</div></div>
         <div class="map-stats-bar__item"><div class="map-stats-bar__value">${win_rate}%</div><div class="map-stats-bar__label">Winrate</div></div>
         <div class="map-stats-bar__item"><div class="map-stats-bar__value">${avg.kills}</div><div class="map-stats-bar__label">Ø Kills</div></div>
+        <div class="map-stats-bar__item"><div class="map-stats-bar__value">${avg.deaths || 0}</div><div class="map-stats-bar__label">Ø Deaths</div></div>
         <div class="map-stats-bar__item"><div class="map-stats-bar__value">${avg.outposts}</div><div class="map-stats-bar__label">Ø OP</div></div>
         <div class="map-stats-bar__item"><div class="map-stats-bar__value">${avg.garrisons}</div><div class="map-stats-bar__label">Ø Gar</div></div>
         <div class="map-stats-bar__item"><div class="map-stats-bar__value">${avg.longest_kill}m</div><div class="map-stats-bar__label">Ø Kaugeim</div></div>
@@ -95,6 +96,7 @@
               <th>Mänge</th>
               <th>WR</th>
               <th>Kills</th>
+              <th>Deaths</th>
               <th>OP</th>
               <th>Gar</th>
               <th>Longest</th>
@@ -109,6 +111,7 @@
                 <td>${row.games}</td>
                 <td>${row.win_rate}%</td>
                 <td>${row.kills}</td>
+                <td>${row.deaths || 0}</td>
                 <td>${row.outposts}</td>
                 <td>${row.garrisons}</td>
                 <td>${row.longest_kill}</td>
@@ -133,6 +136,7 @@
         <div class="map-trend-card"><span class="map-trend-card__value">${trend.win_rate || 0}%</span><span class="map-trend-card__label">Winrate</span></div>
         <div class="map-trend-card"><span class="map-trend-card__value">${trend.avg_score || 0}</span><span class="map-trend-card__label">Ø Score</span></div>
         <div class="map-trend-card"><span class="map-trend-card__value">${trend.avg_kills || 0}</span><span class="map-trend-card__label">Ø Kills</span></div>
+        <div class="map-trend-card"><span class="map-trend-card__value">${trend.avg_deaths || 0}</span><span class="map-trend-card__label">Ø Deaths</span></div>
         <div class="map-trend-card"><span class="map-trend-card__value">${trend.avg_outposts || 0}</span><span class="map-trend-card__label">Ø OP</span></div>
         <div class="map-trend-card"><span class="map-trend-card__value">${trend.avg_garrisons || 0}</span><span class="map-trend-card__label">Ø Gar</span></div>
       </div>
@@ -158,6 +162,7 @@
               <th>Kaotusi</th>
               <th>WR</th>
               <th>Avg Kills</th>
+              <th>Avg Deaths</th>
               <th>Avg OP</th>
               <th>Avg Gar</th>
               <th>Avg Score</th>
@@ -173,6 +178,7 @@
                 <td>${row.losses}</td>
                 <td>${row.win_rate}%</td>
                 <td>${row.avg_kills}</td>
+                <td>${row.avg_deaths || 0}</td>
                 <td>${row.avg_outposts}</td>
                 <td>${row.avg_garrisons}</td>
                 <td>${row.avg_score}</td>
@@ -197,7 +203,9 @@
             <tr>
               <th>Aeg</th>
               <th>Tulemus</th>
+              <th>Challenge</th>
               <th>Kills</th>
+              <th>Deaths</th>
               <th>OP</th>
               <th>Gar</th>
               <th>Score</th>
@@ -212,7 +220,9 @@
                 <tr>
                   <td>${formatDate(row.created_at)}</td>
                   <td><span class="${result.cls}">${result.text}</span></td>
+                  <td>${row.challenge === 'kill_death' ? 'Kill/death' : 'Tavaline'}</td>
                   <td>${row.total_kills}</td>
+                  <td>${row.total_deaths || 0}</td>
                   <td>${row.total_outposts}</td>
                   <td>${row.total_garrisons}</td>
                   <td>${row.total_score}</td>

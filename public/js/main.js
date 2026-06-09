@@ -73,6 +73,7 @@ function removeToast(toast) {
    =========================== */
 const mapSelect             = document.getElementById("mapSelect");
 const resultRadios          = document.querySelectorAll("input[name='result']");
+const challengeRadios       = document.querySelectorAll("input[name='challenge']");
 const warmupCheckbox        = document.getElementById("warmupCheckbox");
 const newGameBtn            = document.getElementById("newGameBtn");
 const gamesSelect           = document.getElementById("gamesSelect");
@@ -115,6 +116,11 @@ function getSelectedResult() {
   return checked ? checked.value : null; // "win" | "loss" | null
 }
 
+function getSelectedChallenge() {
+  const checked = Array.from(challengeRadios).find(r => r.checked);
+  return checked ? checked.value : "normal";
+}
+
 // Fallback, kui formatGameLabel mujal puudub
 if (typeof window.formatGameLabel !== 'function') {
   window.formatGameLabel = function formatGameLabel(g) {
@@ -124,8 +130,9 @@ if (typeof window.formatGameLabel !== 'function') {
       : '';
     const resultStr = g.result === 'win' ? ' (Võit)' : (g.result === 'loss' ? ' (Kaotus)' : '');
     const warmupStr = g.warmup ? ' [Soojendus]' : '';
+    const challengeStr = g.challenge === 'kill_death' ? ' [Kill/death +1/-2]' : '';
     const name = g.map_name || g.name || 'Mäng';
-    return `${name}${warmupStr}${dateStr ? ' – ' + dateStr : ''}${resultStr}`;
+    return `${name}${warmupStr}${challengeStr}${dateStr ? ' – ' + dateStr : ''}${resultStr}`;
   };
 }
 
@@ -154,9 +161,10 @@ function captureTableEdits(tbodyEl) {
     };
     snap.set(name, {
       kills:       asInt(inputs[0], 'kills'),
-      outposts:    asInt(inputs[1], 'outposts'),
-      garrisons:   asInt(inputs[2], 'garrisons'),
-      longest_kill:asInt(inputs[3], 'longest_kill'),
+      deaths:      asInt(inputs[1], 'deaths'),
+      outposts:    asInt(inputs[2], 'outposts'),
+      garrisons:   asInt(inputs[3], 'garrisons'),
+      longest_kill:asInt(inputs[4], 'longest_kill'),
     });
   });
   console.log('[captureTableEdits] snap:', JSON.stringify(Array.from(snap.entries())));
@@ -171,9 +179,10 @@ function restoreTableEdits(snap, tbodyEl) {
     if (!data) return;
     const inputs = tr.querySelectorAll(".score-input");
     if (inputs[0]) inputs[0].value = data.kills ?? 0;
-    if (inputs[1]) inputs[1].value = data.outposts ?? 0;
-    if (inputs[2]) inputs[2].value = data.garrisons ?? 0;
-    if (inputs[3]) inputs[3].value = data.longest_kill ?? 0;
+    if (inputs[1]) inputs[1].value = data.deaths ?? 0;
+    if (inputs[2]) inputs[2].value = data.outposts ?? 0;
+    if (inputs[3]) inputs[3].value = data.garrisons ?? 0;
+    if (inputs[4]) inputs[4].value = data.longest_kill ?? 0;
   });
   // uuenda arvutatud veerge, kui sul on vastav funktsioon
   if (typeof recalcFromTable === 'function') {
@@ -199,9 +208,10 @@ function captureMobileEdits(containerEl) {
     };
     snap.set(name, {
       kills:       asInt(inputs[0]),
-      outposts:    asInt(inputs[1]),
-      garrisons:   asInt(inputs[2]),
-      longest_kill:asInt(inputs[3]),
+      deaths:      asInt(inputs[1]),
+      outposts:    asInt(inputs[2]),
+      garrisons:   asInt(inputs[3]),
+      longest_kill:asInt(inputs[4]),
     });
   });
   console.log('[snap] lõpptulemus:', JSON.stringify(Array.from(snap.entries())));
@@ -218,9 +228,10 @@ function restoreMobileEdits(snap, containerEl) {
     if (!data) return;
     const inputs = card.querySelectorAll('.mobile-score-input');
     if (inputs[0]) inputs[0].value = data.kills ?? 0;
-    if (inputs[1]) inputs[1].value = data.outposts ?? 0;
-    if (inputs[2]) inputs[2].value = data.garrisons ?? 0;
-    if (inputs[3]) inputs[3].value = data.longest_kill ?? 0;
+    if (inputs[1]) inputs[1].value = data.deaths ?? 0;
+    if (inputs[2]) inputs[2].value = data.outposts ?? 0;
+    if (inputs[3]) inputs[3].value = data.garrisons ?? 0;
+    if (inputs[4]) inputs[4].value = data.longest_kill ?? 0;
   });
   if (typeof recalcMobileFromCards === 'function') {
     recalcMobileFromCards(containerEl);
@@ -315,10 +326,11 @@ async function loadEntries() {
       tr.innerHTML = `
         <td>${idx + 1}</td>
         <td>${e.player_name}</td>
-        <td><input class="score-input" type="number" min="0" value="${e.kills||0}"></td>
-        <td><input class="score-input" type="number" min="0" value="${e.outposts||0}"></td>
-        <td><input class="score-input" type="number" min="0" value="${e.garrisons||0}"></td>
-        <td><input class="score-input" type="number" min="0" value="${e.longest_kill||0}"></td>
+        <td><input class="score-input" data-field="kills" type="number" min="0" value="${e.kills||0}"></td>
+        <td><input class="score-input" data-field="deaths" type="number" min="0" value="${e.deaths||0}"></td>
+        <td><input class="score-input" data-field="outposts" type="number" min="0" value="${e.outposts||0}"></td>
+        <td><input class="score-input" data-field="garrisons" type="number" min="0" value="${e.garrisons||0}"></td>
+        <td><input class="score-input" data-field="longest_kill" type="number" min="0" value="${e.longest_kill||0}"></td>
         <td class="bonus-cell"></td>
         <td class="total-cell"></td>
         <td><button data-delete="${e.id}" title="Eemalda sellest mängust">×</button></td>
@@ -586,29 +598,32 @@ async function openGameOverlay(gameId) {
     const game = (games || []).find(g => String(g.id) === String(gameId));
     if (!game) throw new Error('Mängu ei leitud');
 
-    let maxLongest = 0;
-    (entries || []).forEach(e => {
-      const lk = Number(e.longest_kill) || 0;
-      if (lk > maxLongest) maxLongest = lk;
-    });
-
-    const rows = (entries || []).map(e => {
-      const kills = Number(e.kills) || 0;
-      const outposts = Number(e.outposts) || 0;
-      const garrisons = Number(e.garrisons) || 0;
-      const longest = Number(e.longest_kill) || 0;
-      const bonus = maxLongest > 0 && longest === maxLongest ? 1 : 0;
-      const score = kills + outposts * 3 + garrisons * 6 + bonus;
-      return { ...e, kills, outposts, garrisons, longest_kill: longest, bonus, score };
-    }).sort((a, b) => b.score - a.score || b.kills - a.kills || a.player_name.localeCompare(b.player_name));
+    const challenge = game.challenge || (entries || []).find(e => e.challenge)?.challenge || 'normal';
+    const sourceRows = (entries || []).map(e => ({ ...e, challenge }));
+    const rows = typeof calculateScores === 'function'
+      ? calculateScores(sourceRows, challenge).map(row => ({ ...row, score: row.total }))
+      : sourceRows.map(e => ({
+          ...e,
+          kills: Number(e.kills) || 0,
+          deaths: Number(e.deaths) || 0,
+          outposts: Number(e.outposts) || 0,
+          garrisons: Number(e.garrisons) || 0,
+          longest_kill: Number(e.longest_kill) || 0,
+          bonus: 0,
+          penalty: challenge === 'kill_death' ? (Number(e.deaths) || 0) * 2 : 0,
+          score: challenge === 'kill_death'
+            ? (Number(e.kills) || 0) - (Number(e.deaths) || 0) * 2
+            : (Number(e.kills) || 0) + (Number(e.outposts) || 0) * 3 + (Number(e.garrisons) || 0) * 6
+        })).sort((a, b) => b.score - a.score || b.kills - a.kills || a.player_name.localeCompare(b.player_name));
 
     const totals = rows.reduce((acc, row) => {
       acc.kills += row.kills;
+      acc.deaths += row.deaths || 0;
       acc.outposts += row.outposts;
       acc.garrisons += row.garrisons;
       acc.score += row.score;
       return acc;
-    }, { kills: 0, outposts: 0, garrisons: 0, score: 0 });
+    }, { kills: 0, deaths: 0, outposts: 0, garrisons: 0, score: 0 });
 
     bodyEl.innerHTML = `
       <div class="map-overlay-grid">
@@ -616,7 +631,9 @@ async function openGameOverlay(gameId) {
           <div class="map-stats-bar">
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${game.map_name || game.name || 'Mäng'}</div><div class="map-stats-bar__label">Kaart</div></div>
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${game.result === 'win' ? 'Võit' : game.result === 'loss' ? 'Kaotus' : '–'}</div><div class="map-stats-bar__label">Tulemus</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${typeof getChallengeLabel === 'function' ? getChallengeLabel(challenge) : challenge}</div><div class="map-stats-bar__label">Challenge</div></div>
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${totals.kills}</div><div class="map-stats-bar__label">Kills</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${totals.deaths}</div><div class="map-stats-bar__label">Deaths</div></div>
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${totals.outposts}</div><div class="map-stats-bar__label">OP</div></div>
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${totals.garrisons}</div><div class="map-stats-bar__label">Gar</div></div>
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${totals.score}</div><div class="map-stats-bar__label">Score</div></div>
@@ -627,9 +644,9 @@ async function openGameOverlay(gameId) {
           <div class="map-section-title">Selle mängu tulemused</div>
           <div class="overlay-table-wrap">
             <table class="overlay-table">
-              <thead><tr><th>#</th><th>Mängija</th><th>Kills</th><th>OP</th><th>Gar</th><th>Longest</th><th>Boonus</th><th>Score</th></tr></thead>
+              <thead><tr><th>#</th><th>Mängija</th><th>Kills</th><th>Deaths</th><th>OP</th><th>Gar</th><th>Longest</th><th>Reegel</th><th>Score</th></tr></thead>
               <tbody>
-                ${rows.map((row, idx) => `<tr><td>${idx + 1}</td><td>${row.player_name}</td><td>${row.kills}</td><td>${row.outposts}</td><td>${row.garrisons}</td><td>${row.longest_kill}</td><td>${row.bonus}</td><td>${row.score}</td></tr>`).join('')}
+                ${rows.map((row, idx) => `<tr><td>${idx + 1}</td><td>${row.player_name}</td><td>${row.kills}</td><td>${row.deaths || 0}</td><td>${row.outposts}</td><td>${row.garrisons}</td><td>${row.longest_kill}</td><td>${typeof formatScoreNote === 'function' ? formatScoreNote(row) : (row.penalty ? '-' + row.penalty : row.bonus || '')}</td><td>${row.score}</td></tr>`).join('')}
               </tbody>
             </table>
           </div>
@@ -753,13 +770,14 @@ if (newGameBtn) {
     const mapName = mapSelect ? mapSelect.value.trim() : "";
     const result = getSelectedResult();
     const warmup = Boolean(warmupCheckbox?.checked);
+    const challenge = getSelectedChallenge();
     if (!mapName) {
       showToast("Vali kaart.", "error", 4000);
       return;
     }
     try {
       if (typeof createGame !== 'function') return;
-      const game = await createGame({ map_name: mapName, result, warmup });
+      const game = await createGame({ map_name: mapName, result, warmup, challenge });
       await loadGames();
       currentGameId = game.id;
       if (gamesSelect) gamesSelect.value = String(game.id);
@@ -935,7 +953,7 @@ if (addGamePlayerBtn && tbody) {
 
     try {
       if (typeof saveEntry !== 'function') return;
-      await saveEntry(currentGameId, { player_name: name, kills: 0, outposts: 0, garrisons: 0, longest_kill: 0 });
+      await saveEntry(currentGameId, { player_name: name, kills: 0, deaths: 0, outposts: 0, garrisons: 0, longest_kill: 0 });
       if (addGamePlayerNameInput) addGamePlayerNameInput.value = "";
       await loadEntries();
       // taastame muud ridade sisestused
@@ -966,11 +984,11 @@ async function fetchPlayerStats(playerName, windowKey) {
   return res.json();
 }
 
-function compareValue(a, b, suffix = "") {
+function compareValue(a, b, suffix = "", lowerIsBetter = false) {
   const av = Number(a || 0);
   const bv = Number(b || 0);
   const diff = av - bv;
-  const cls = diff > 0 ? 'result-win' : diff < 0 ? 'result-loss' : 'result-none';
+  const cls = diff === 0 ? 'result-none' : ((diff > 0) !== lowerIsBetter ? 'result-win' : 'result-loss');
   const sign = diff > 0 ? '+' : '';
   return `<span class="${cls}">${sign}${diff}${suffix}</span>`;
 }
@@ -1032,6 +1050,7 @@ async function openPlayerModal(playerName, windowKey) {
                 <th>Kaotusi</th>
                 <th>WR</th>
                 <th>Kills</th>
+                <th>Deaths</th>
                 <th>OP</th>
                 <th>Gar</th>
                 <th>Longest</th>
@@ -1047,6 +1066,7 @@ async function openPlayerModal(playerName, windowKey) {
                   <td>${m.losses}</td>
                   <td>${m.win_rate ?? 0}%</td>
                   <td>${m.kills}</td>
+                  <td>${m.deaths || 0}</td>
                   <td>${m.outposts}</td>
                   <td>${m.garrisons}</td>
                   <td>${m.longest_kill}</td>
@@ -1098,6 +1118,7 @@ async function openPlayerModal(playerName, windowKey) {
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.losses || 0}</div><div class="map-stats-bar__label">Kaotusi</div></div>
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.win_rate || 0}%</div><div class="map-stats-bar__label">Winrate</div></div>
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.kills || 0}</div><div class="map-stats-bar__label">Kills</div></div>
+            <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.deaths || 0}</div><div class="map-stats-bar__label">Deaths</div></div>
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.outposts || 0}</div><div class="map-stats-bar__label">OP</div></div>
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.garrisons || 0}</div><div class="map-stats-bar__label">Gar</div></div>
             <div class="map-stats-bar__item"><div class="map-stats-bar__value">${t.longest_kill || 0}m</div><div class="map-stats-bar__label">Longest</div></div>
@@ -1118,6 +1139,7 @@ async function openPlayerModal(playerName, windowKey) {
             <div class="map-trend-card"><span class="map-trend-card__value">${trend.win_rate || 0}%</span><span class="map-trend-card__label">WR</span></div>
             <div class="map-trend-card"><span class="map-trend-card__value">${trend.avg_score || 0}</span><span class="map-trend-card__label">Ø Score</span></div>
             <div class="map-trend-card"><span class="map-trend-card__value">${trend.avg_kills || 0}</span><span class="map-trend-card__label">Ø Kills</span></div>
+            <div class="map-trend-card"><span class="map-trend-card__value">${trend.avg_deaths || 0}</span><span class="map-trend-card__label">Ø Deaths</span></div>
           </div>
           <div class="map-form-row" style="margin-top:0.65rem;">${formHtml || '<span class="map-form-pill map-form-pill--neutral">-</span>'}</div>
         </section>
@@ -1179,6 +1201,7 @@ async function openPlayerModal(playerName, windowKey) {
                   <tr><td>Wins</td><td>${t.wins || 0}</td><td>${ot.wins || 0}</td><td>${compareValue(t.wins, ot.wins)}</td></tr>
                   <tr><td>Winrate</td><td>${t.win_rate || 0}%</td><td>${ot.win_rate || 0}%</td><td>${compareValue(t.win_rate, ot.win_rate, '%')}</td></tr>
                   <tr><td>Kills</td><td>${t.kills || 0}</td><td>${ot.kills || 0}</td><td>${compareValue(t.kills, ot.kills)}</td></tr>
+                  <tr><td>Deaths</td><td>${t.deaths || 0}</td><td>${ot.deaths || 0}</td><td>${compareValue(t.deaths, ot.deaths, '', true)}</td></tr>
                   <tr><td>Outposts</td><td>${t.outposts || 0}</td><td>${ot.outposts || 0}</td><td>${compareValue(t.outposts, ot.outposts)}</td></tr>
                   <tr><td>Garrisons</td><td>${t.garrisons || 0}</td><td>${ot.garrisons || 0}</td><td>${compareValue(t.garrisons, ot.garrisons)}</td></tr>
                   <tr><td>Longest kill</td><td>${t.longest_kill || 0}</td><td>${ot.longest_kill || 0}</td><td>${compareValue(t.longest_kill, ot.longest_kill)}</td></tr>

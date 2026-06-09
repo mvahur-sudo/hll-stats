@@ -100,7 +100,8 @@ h2, h3 { margin-top: 0; }
   margin-bottom: 0.75rem;
 }
 .form-row label { font-size: 0.85rem; }
-.form-row--warmup {
+.form-row--warmup,
+.form-row--challenge {
   align-items: center;
   gap: 0.5rem 0.9rem;
 }
@@ -180,7 +181,7 @@ button[tabindex="-1"] { outline: none; }
 
 .scores-table {
   width: 100%;
-  min-width: 760px;
+  min-width: 840px;
   border-collapse: collapse;
   font-size: 0.8rem;
   table-layout: fixed;
@@ -215,10 +216,11 @@ button[tabindex="-1"] { outline: none; }
 .scores-table th:nth-child(3), .scores-table td:nth-child(3),
 .scores-table th:nth-child(4), .scores-table td:nth-child(4),
 .scores-table th:nth-child(5), .scores-table td:nth-child(5),
-.scores-table th:nth-child(6), .scores-table td:nth-child(6) { width: 9%; }
+.scores-table th:nth-child(6), .scores-table td:nth-child(6),
 .scores-table th:nth-child(7), .scores-table td:nth-child(7) { width: 8%; }
 .scores-table th:nth-child(8), .scores-table td:nth-child(8) { width: 8%; }
-.scores-table th:nth-child(9), .scores-table td:nth-child(9) { width: 5%;  text-align: center; }
+.scores-table th:nth-child(9), .scores-table td:nth-child(9) { width: 8%; }
+.scores-table th:nth-child(10), .scores-table td:nth-child(10) { width: 5%;  text-align: center; }
 
 /* Inputs inside table */
 .score-input {
@@ -235,16 +237,40 @@ button[tabindex="-1"] { outline: none; }
 
 .total-cell { font-weight: 700; }
 
+.bonus-tag,
+.penalty-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 0.1rem 0.38rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.bonus-tag {
+  background: rgba(45,212,191,0.12);
+  border: 1px solid rgba(45,212,191,0.35);
+  color: var(--accent);
+}
+.penalty-tag {
+  background: rgba(249,115,115,0.12);
+  border: 1px solid rgba(249,115,115,0.35);
+  color: #fca5a5;
+}
+
 /* Mobile */
 @media (max-width: 640px) {
-  .scores-table { min-width: 640px; font-size: 0.75rem; }
+  .scores-table { min-width: 760px; font-size: 0.75rem; }
   .scores-table th, .scores-table td { padding: 0.25rem 0.3rem; }
   .score-input { padding: 0.18rem 0.3rem; font-size: 0.75rem; }
 }
 
 @media (max-width: 520px) {
-  .scores-table th:nth-child(6),
-  .scores-table td:nth-child(6) { display: none; }
+  .scores-table th:nth-child(7),
+  .scores-table td:nth-child(7) { display: none; }
 }
 
 /* Ranks */
@@ -925,7 +951,8 @@ button[tabindex="-1"] { outline: none; }
     font-size: 0.8rem;
   }
 
-  .mobile-bonus-tag {
+  .mobile-bonus-tag,
+  .mobile-rule-tag {
     grid-column: 1 / -1;
     font-size: 0.72rem;
     color: var(--accent);

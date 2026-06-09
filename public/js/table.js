@@ -1,5 +1,77 @@
 // public/js/table.js
 
+const CHALLENGE_NORMAL = "normal";
+const CHALLENGE_KILL_DEATH = "kill_death";
+
+function normalizeChallenge(value) {
+  return value === CHALLENGE_KILL_DEATH ? CHALLENGE_KILL_DEATH : CHALLENGE_NORMAL;
+}
+
+function getChallengeLabel(value) {
+  const challenge = normalizeChallenge(value);
+  if (challenge === CHALLENGE_KILL_DEATH) return "Kill/death (+1 / -2)";
+  return "Tavaline";
+}
+
+function normalizeCount(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.trunc(n));
+}
+
+function calculateScoreParts(entry, maxLongest, challengeValue) {
+  const challenge = normalizeChallenge(challengeValue ?? entry.challenge);
+  const kills = normalizeCount(entry.kills);
+  const deaths = normalizeCount(entry.deaths);
+  const outposts = normalizeCount(entry.outposts);
+  const garrisons = normalizeCount(entry.garrisons);
+  const longest_kill = normalizeCount(entry.longest_kill);
+
+  if (challenge === CHALLENGE_KILL_DEATH) {
+    const base = kills;
+    const penalty = deaths * 2;
+    return {
+      challenge,
+      kills,
+      deaths,
+      outposts,
+      garrisons,
+      longest_kill,
+      base,
+      bonus: 0,
+      penalty,
+      total: base - penalty
+    };
+  }
+
+  const base = kills + outposts * 3 + garrisons * 6;
+  const bonus = maxLongest > 0 && longest_kill === maxLongest ? 1 : 0;
+  return {
+    challenge,
+    kills,
+    deaths,
+    outposts,
+    garrisons,
+    longest_kill,
+    base,
+    bonus,
+    penalty: 0,
+    total: base + bonus
+  };
+}
+
+function getEntriesChallenge(entries, fallback) {
+  const row = Array.isArray(entries) ? entries.find(e => e && e.challenge) : null;
+  return normalizeChallenge(row?.challenge ?? fallback);
+}
+
+function formatScoreNote(row) {
+  if (normalizeChallenge(row.challenge) === CHALLENGE_KILL_DEATH) {
+    return row.penalty > 0 ? `<span class="penalty-tag">-${row.penalty}</span>` : "";
+  }
+  return row.bonus ? '<span class="bonus-tag">kaugeim kill</span>' : "";
+}
+
 // Formaat mängu label: kaart + tulemus + 24h aeg
 function formatGameLabel(game) {
   const map = game.map_name || game.name || "Mäng";
@@ -21,17 +93,25 @@ function formatGameLabel(game) {
   if (game.result === "win") resText = " – Võit";
   else if (game.result === "loss") resText = " – Kaotus";
 
-  return `${map}${resText} – ${when}`;
+  const warmupText = game.warmup ? " – Soojendus" : "";
+  const challengeText = normalizeChallenge(game.challenge) !== CHALLENGE_NORMAL
+    ? ` – ${getChallengeLabel(game.challenge)}`
+    : "";
+
+  return `${map}${resText}${warmupText}${challengeText} – ${when}`;
 }
 
-// Arvuta punktid sama loogikaga mis server: kill + 3*OP + 6*G + boonus pikima killi eest
-function calculateScores(entries) {
+// Arvuta punktid sama loogikaga mis server.
+function calculateScores(entries, challengeValue) {
+  const challenge = getEntriesChallenge(entries, challengeValue);
   const arr = entries.map(e => ({
     ...e,
-    kills: Number(e.kills) || 0,
-    outposts: Number(e.outposts) || 0,
-    garrisons: Number(e.garrisons) || 0,
-    longest_kill: Number(e.longest_kill) || 0
+    challenge,
+    kills: normalizeCount(e.kills),
+    deaths: normalizeCount(e.deaths),
+    outposts: normalizeCount(e.outposts),
+    garrisons: normalizeCount(e.garrisons),
+    longest_kill: normalizeCount(e.longest_kill)
   }));
 
   const maxLongest = arr.reduce(
@@ -41,14 +121,10 @@ function calculateScores(entries) {
 
   return arr
     .map(e => {
-      const base = e.kills + e.outposts * 3 + e.garrisons * 6;
-      const bonus = maxLongest > 0 && e.longest_kill === maxLongest ? 1 : 0;
-      const total = base + bonus;
+      const parts = calculateScoreParts(e, maxLongest, challenge);
       return {
         ...e,
-        base,
-        bonus,
-        total
+        ...parts
       };
     })
     .sort((a, b) =>
@@ -65,14 +141,16 @@ function renderTable(entries, tbodyEl) {
   if (!entries || !entries.length) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 9;
+    td.colSpan = 10;
     td.textContent = "Selles mängus pole mängijaid.";
     tr.appendChild(td);
     tbodyEl.appendChild(tr);
     return;
   }
 
-  const scored = calculateScores(entries);
+  const challenge = getEntriesChallenge(entries);
+  tbodyEl.dataset.challenge = challenge;
+  const scored = calculateScores(entries, challenge);
   const maxLongest = scored.reduce(
     (m, e) => (e.longest_kill > m ? e.longest_kill : m),
     0
@@ -97,10 +175,11 @@ function renderTable(entries, tbodyEl) {
       <td class="pos-cell">${index + 1}</td>
       <td class="name-cell">${e.player_name}</td>
       <td><input type="number" class="score-input" data-field="kills" min="0" value="${e.kills}"></td>
+      <td><input type="number" class="score-input" data-field="deaths" min="0" value="${e.deaths}"></td>
       <td><input type="number" class="score-input" data-field="outposts" min="0" value="${e.outposts}"></td>
       <td><input type="number" class="score-input" data-field="garrisons" min="0" value="${e.garrisons}"></td>
       <td><input type="number" class="score-input" data-field="longest_kill" min="0" value="${e.longest_kill || 0}"></td>
-      <td>${e.bonus || (maxLongest > 0 && e.longest_kill === maxLongest) ? '<span class="bonus-tag">kaugeim kill</span>' : ''}</td>
+      <td class="bonus-cell">${formatScoreNote(e)}</td>
       <td class="total-cell">${e.total}</td>
       <td><button class="btn btn-secondary" data-delete="${e.id || ''}" tabindex="-1">X</button></td>
     `;
@@ -124,7 +203,7 @@ function collectTablePayloads(tbodyEl) {
 
     inputs.forEach(inp => {
       const field = inp.dataset.field;
-      const val = Number(inp.value) || 0;
+      const val = normalizeCount(inp.value);
       data[field] = val;
     });
 
@@ -149,7 +228,7 @@ function recalcFromTable(tbodyEl) {
 
     inputs.forEach(inp => {
       const field = inp.dataset.field;
-      const val = Number(inp.value) || 0;
+      const val = normalizeCount(inp.value);
       data[field] = val;
     });
 
@@ -157,6 +236,8 @@ function recalcFromTable(tbodyEl) {
   });
 
   if (!rowData.length) return;
+
+  const challenge = normalizeChallenge(tbodyEl.dataset.challenge);
 
   // leia max longest kill
   const maxLongest = rowData.reduce(
@@ -166,16 +247,12 @@ function recalcFromTable(tbodyEl) {
 
   // arvuta punktid
   rowData.forEach(d => {
-    const base = d.kills + d.outposts * 3 + d.garrisons * 6;
-    const bonus = maxLongest > 0 && d.longest_kill === maxLongest ? 1 : 0;
-    d.base = base;
-    d.bonus = bonus;
-    d.total = base + bonus;
+    Object.assign(d, calculateScoreParts(d, maxLongest, challenge));
   });
 
   // leia unikaalsed skoorid, et teada kes on 1., 2., 3. koht
   const uniqueTotals = [...new Set(rowData.map(d => d.total))]
-    .filter(t => t > 0)
+    .filter(t => t !== 0)
     .sort((a, b) => b - a);
 
   const firstTotal = uniqueTotals[0];
@@ -194,11 +271,14 @@ function recalcFromTable(tbodyEl) {
     const totalCell = row.querySelector(".total-cell");
     if (totalCell) totalCell.textContent = d.total;
 
-    if (d.total === firstTotal && firstTotal > 0) {
+    const bonusCell = row.querySelector(".bonus-cell");
+    if (bonusCell) bonusCell.innerHTML = formatScoreNote(d);
+
+    if (d.total === firstTotal && firstTotal !== undefined) {
       row.classList.add("rank-1");
-    } else if (secondTotal !== undefined && d.total === secondTotal && secondTotal > 0) {
+    } else if (secondTotal !== undefined && d.total === secondTotal) {
       row.classList.add("rank-2");
-    } else if (thirdTotal !== undefined && d.total === thirdTotal && thirdTotal > 0) {
+    } else if (thirdTotal !== undefined && d.total === thirdTotal) {
       row.classList.add("rank-3");
     }
 
@@ -222,7 +302,9 @@ function renderMobileCards(entries, containerEl) {
     return;
   }
 
-  const scored = calculateScores(entries);
+  const challenge = getEntriesChallenge(entries);
+  containerEl.dataset.challenge = challenge;
+  const scored = calculateScores(entries, challenge);
   const maxLongest = scored.reduce((m, e) => (e.longest_kill > m ? e.longest_kill : m), 0);
 
   scored.forEach((e, index) => {
@@ -238,7 +320,7 @@ function renderMobileCards(entries, containerEl) {
       card.classList.add('highlight');
     }
 
-    const bonus = e.bonus || (maxLongest > 0 && e.longest_kill === maxLongest ? 1 : 0);
+    const scoreNote = formatScoreNote(e);
 
     card.innerHTML = `
       <div class="mobile-player-header">
@@ -254,6 +336,10 @@ function renderMobileCards(entries, containerEl) {
           <input type="number" class="mobile-score-input" data-field="kills" min="0" value="${e.kills}">
         </div>
         <div class="mobile-field">
+          <label>Deaths</label>
+          <input type="number" class="mobile-score-input" data-field="deaths" min="0" value="${e.deaths}">
+        </div>
+        <div class="mobile-field">
           <label>Outpost</label>
           <input type="number" class="mobile-score-input" data-field="outposts" min="0" value="${e.outposts}">
         </div>
@@ -265,7 +351,7 @@ function renderMobileCards(entries, containerEl) {
           <label>Kaugem kill</label>
           <input type="number" class="mobile-score-input" data-field="longest_kill" min="0" value="${e.longest_kill || 0}">
         </div>
-        ${bonus ? '<div class="mobile-bonus-tag">+1 boonus: kaugeim kill</div>' : ''}
+        ${scoreNote ? `<div class="mobile-rule-tag">${scoreNote}</div>` : ''}
       </div>
       <div class="mobile-player-footer">
         <button class="btn btn-secondary" data-mobile-delete="${e.id || ''}">Eemalda</button>
@@ -291,7 +377,7 @@ function collectMobilePayloads(containerEl) {
 
     inputs.forEach(inp => {
       const field = inp.dataset.field;
-      const val = Number(inp.value) || 0;
+      const val = normalizeCount(inp.value);
       data[field] = val;
     });
 
@@ -318,7 +404,7 @@ function recalcMobileFromCards(containerEl) {
     const data = { card, player_name };
     inputs.forEach(inp => {
       const field = inp.dataset.field;
-      data[field] = Number(inp.value) || 0;
+      data[field] = normalizeCount(inp.value);
     });
     cardData.push(data);
   });
@@ -327,14 +413,14 @@ function recalcMobileFromCards(containerEl) {
 
   const maxLongest = cardData.reduce((m, d) => (d.longest_kill > m ? d.longest_kill : m), 0);
 
+  const challenge = normalizeChallenge(containerEl.dataset.challenge);
+
   cardData.forEach(d => {
-    const base = d.kills + d.outposts * 3 + d.garrisons * 6;
-    const bonus = maxLongest > 0 && d.longest_kill === maxLongest ? 1 : 0;
-    d.total = base + bonus;
+    Object.assign(d, calculateScoreParts(d, maxLongest, challenge));
   });
 
   const uniqueTotals = [...new Set(cardData.map(d => d.total))]
-    .filter(t => t > 0)
+    .filter(t => t !== 0)
     .sort((a, b) => b - a);
 
   cards.forEach(c => c.classList.remove('rank-1', 'rank-2', 'rank-3', 'highlight'));
@@ -344,26 +430,28 @@ function recalcMobileFromCards(containerEl) {
     const totalEl = card.querySelector('.mobile-player-total');
     if (totalEl) totalEl.textContent = d.total;
 
-    if (d.total === uniqueTotals[0] && uniqueTotals[0] > 0) card.classList.add('rank-1');
-    else if (uniqueTotals[1] !== undefined && d.total === uniqueTotals[1] && uniqueTotals[1] > 0) card.classList.add('rank-2');
-    else if (uniqueTotals[2] !== undefined && d.total === uniqueTotals[2] && uniqueTotals[2] > 0) card.classList.add('rank-3');
+    if (d.total === uniqueTotals[0] && uniqueTotals[0] !== undefined) card.classList.add('rank-1');
+    else if (uniqueTotals[1] !== undefined && d.total === uniqueTotals[1]) card.classList.add('rank-2');
+    else if (uniqueTotals[2] !== undefined && d.total === uniqueTotals[2]) card.classList.add('rank-3');
 
     if (d.longest_kill === maxLongest && maxLongest > 0) card.classList.add('highlight');
 
-    const bonus = maxLongest > 0 && d.longest_kill === maxLongest ? 1 : 0;
-    const bonusEl = card.querySelector('.mobile-bonus-tag');
-    if (bonus) {
-      if (!bonusEl) {
+    const scoreNote = formatScoreNote(d);
+    const ruleEl = card.querySelector('.mobile-rule-tag');
+    if (scoreNote) {
+      if (!ruleEl) {
         const fields = card.querySelector('.mobile-player-fields');
         if (fields) {
           const div = document.createElement('div');
-          div.className = 'mobile-bonus-tag';
-          div.textContent = '+1 boonus: kaugeim kill';
+          div.className = 'mobile-rule-tag';
+          div.innerHTML = scoreNote;
           fields.appendChild(div);
         }
+      } else {
+        ruleEl.innerHTML = scoreNote;
       }
-    } else if (bonusEl) {
-      bonusEl.remove();
+    } else if (ruleEl) {
+      ruleEl.remove();
     }
   });
 }

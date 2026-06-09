@@ -8,10 +8,14 @@ Simple self-hosted Hell Let Loose squad statistics app.
 - Keep a reusable player roster
 - Record per-player stats:
   - kills
+  - deaths
   - outposts
   - garrisons
   - longest kill
-- Automatic score calculation
+- Per-game challenge scoring modes:
+  - normal: kills + outposts * 3 + garrisons * 6 + longest-kill bonus
+  - kill/death: kills - deaths * 2
+- Automatic score calculation per challenge
 - Map statistics
 - Player records and podium stats
 - Built-in SQLite database
@@ -79,10 +83,10 @@ SQLite database file is created automatically:
 
 ### Games
 - `GET /api/games`
-- `POST /api/games`
+- `POST /api/games` — accepts `map_name`, `result`, `warmup`, `challenge`
 - `DELETE /api/games/:id`
 - `GET /api/games/:id/entries`
-- `POST /api/games/:id/entries`
+- `POST /api/games/:id/entries` — accepts `player_name`, `kills`, `deaths`, `outposts`, `garrisons`, `longest_kill`
 
 ### Entries
 - `DELETE /api/entries/:id`
