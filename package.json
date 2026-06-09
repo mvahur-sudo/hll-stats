@@ -1,6 +1,6 @@
 {
   "name": "hll-stats",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "description": "Hell Let Loose squad statistics dashboard",
   "main": "server.js",
