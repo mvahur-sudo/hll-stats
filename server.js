@@ -236,6 +236,7 @@ app.get('/login', (req, res) => {
       <input id="code" name="code" type="password" autocomplete="off" autofocus>
       <button class="btn" type="submit">Sisene</button>
     </form>
+    <div class="version-banner">v${APP_VERSION}</div>
   </div>
 </body>
 </html>`);
