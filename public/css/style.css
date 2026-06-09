@@ -257,63 +257,169 @@ button[tabindex="-1"] { outline: none; }
   border: 1px solid rgba(248,113,113,0.3);
 }
 
-/* Mobile */
+/* ============================================================
+   MOBILE: card-based entry layout (≤768px)
+   ============================================================ */
+
+/* Hide native table header & table layout */
 @media (max-width: 768px) {
-  .scores-table { min-width: 0; font-size: 0.72rem; }
-  .scores-table th, .scores-table td { padding: 0.3rem 0.2rem; }
+  .scores-table { min-width: 0; }
+  .scores-table thead { display: none; }
+  .scores-table tbody { display: flex; flex-direction: column; gap: 0.65rem; }
+  .scores-table tr {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    background: var(--bg-page);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 0.7rem;
+    box-shadow: var(--shadow-card);
+  }
+  .scores-table td {
+    display: block;
+    border: none;
+    padding: 0;
+    text-align: left;
+  }
+
+  /* Positsioon + nimi + kustutusnupp — header rida */
+  .scores-table td.pos-cell {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.15rem;
+  }
+  .scores-table td.name-cell {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  /* Numbrite sisestusread — üks rida per väli */
+  .scores-table td:has(.score-input) {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(51,65,85,0.3);
+  }
+
+  /* Label enne input'i (pseudoelement) */
+  .scores-table td:nth-child(3)::before { content: "Kills"; }
+  .scores-table td:nth-child(4)::before { content: "Deaths"; }
+  .scores-table td:nth-child(5)::before { content: "OP"; }
+  .scores-table td:nth-child(6)::before { content: "Gar"; }
+  .scores-table td:nth-child(7)::before { content: "Longest (m)"; }
+
+  .scores-table td:nth-child(3)::before,
+  .scores-table td:nth-child(4)::before,
+  .scores-table td:nth-child(5)::before,
+  .scores-table td:nth-child(6)::before,
+  .scores-table td:nth-child(7)::before {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  /* Inputid — suured, mugavad */
   .score-input {
-    padding: 0.2rem 0.15rem;
-    font-size: 0.7rem;
+    font-size: 16px !important;
+    padding: 0.42rem 0.45rem;
+    border-radius: var(--radius-md);
+    text-align: center;
+    width: 100%;
+    max-width: 80px;
     -webkit-appearance: none;
     appearance: none;
   }
-  .btn { padding: 0.25rem 0.6rem; font-size: 0.78rem; }
-  .score-input, input[type="number"] { font-size: 16px !important; } /* prevent iOS zoom */
 
-  /* Hide some columns on narrow screens */
-  .scores-table th:nth-child(4),
-  .scores-table td:nth-child(4),
-  .scores-table th:nth-child(7),
-  .scores-table td:nth-child(7),
-  .scores-table th:nth-child(8),
-  .scores-table td:nth-child(8) { display: none; }
+  /* + / - nupud */
+  .score-stepper {
+    display: flex;
+    gap: 0.25rem;
+  }
+  .score-stepper button {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-dim);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .score-stepper button:active { background: var(--border); }
+  .score-stepper .step-up   { color: var(--accent-2); border-color: rgba(34,197,94,0.3); }
+  .score-stepper .step-down { color: var(--danger);    border-color: rgba(248,113,113,0.3); }
 
-  /* Tighten column widths */
-  .scores-table th:nth-child(1), .scores-table td:nth-child(1) { width: 5%; }
-  .scores-table th:nth-child(2), .scores-table td:nth-child(2) { width: 22%; }
-  .scores-table th:nth-child(3), .scores-table td:nth-child(3) { width: 14%; }
-  .scores-table th:nth-child(5), .scores-table td:nth-child(5) { width: 14%; }
-  .scores-table th:nth-child(6), .scores-table td:nth-child(6) { width: 14%; }
-  .scores-table th:nth-child(9), .scores-table td:nth-child(9) { width: 16%; }
-  .scores-table th:nth-child(10), .scores-table td:nth-child(10) { width: 8%; }
+  /* Bonus/total rida */
+  .scores-table td.bonus-cell {
+    margin-top: 0.35rem;
+    text-align: center;
+  }
+  .bonus-tag, .penalty-tag { font-size: 0.75rem; padding: 0.2rem 0.55rem; }
 
-  /* Hide bonus box on mobile */
-  .bonus-tag, .penalty-tag { display: none; }
-  .total-cell { font-size: 0.8rem; }
+  .scores-table td.total-cell {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    padding: 0.45rem 0 0.15rem;
+    color: var(--accent);
+  }
+  .scores-table td.total-cell::before {
+    content: "Score ";
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
 
-  /* Save bar stack */
+  /* Kustutusnupp */
+  .scores-table td:last-child {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.3rem;
+  }
+  .scores-table td:last-child .btn {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.65rem;
+  }
+
+  /* Peida tabeli table-layout reeglid mobile'il */
+  .scores-table th, .scores-table td { width: auto !important; }
+
+  /* Ranks in cards */
+  .scores-table tr.rank-1 { border-color: rgba(250,204,21,0.5); }
+  .scores-table tr.rank-2 { border-color: rgba(148,163,184,0.4); }
+  .scores-table tr.rank-3 { border-color: rgba(244,114,182,0.35); }
+  .scores-table tr.highlight { outline: 2px solid var(--accent-3); outline-offset: 0px; }
+
+  /* General mobile */
+  .btn { padding: 0.35rem 0.8rem; font-size: 0.85rem; }
   .save-bar { align-items: flex-start; flex-direction: column; }
-  .save-bar .save-hint { font-size: 0.7rem; }
+  .save-bar .save-hint { font-size: 0.75rem; }
   .section-divider { margin: 0.9rem 0 1rem; }
-
-  /* Top grid single column */
   .top-grid { grid-template-columns: minmax(0, 1fr); }
-
-  /* Stats grid single column */
   .stats-grid { grid-template-columns: 1fr; }
-
-  /* Smaller headings */
   h1 { font-size: 1.2rem; margin-bottom: 0.8rem; }
   .container { margin: 0.8rem auto; padding: 0 0.5rem 1.5rem; }
   .card { padding: 0.6rem 0.7rem; margin-bottom: 0.7rem; }
-
-  /* Form rows */
-  .form-row { gap: 0.3rem 0.6rem; font-size: 0.8rem; }
-  .form-row label { font-size: 0.78rem; }
+  .form-row { gap: 0.3rem 0.6rem; font-size: 0.82rem; }
+  .form-row label { font-size: 0.8rem; }
   .add-to-game-row { gap: 0.3rem 0.5rem; }
   .add-to-game-row input[type="text"] { min-width: 8rem; max-width: 10rem; }
-
-  /* Map overlay single column */
   .map-overlay-grid { grid-template-columns: 1fr; }
   .map-trend-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .overlay-card--wide { width: calc(100% - 1rem); margin: 2vh auto; }
@@ -322,23 +428,6 @@ button[tabindex="-1"] { outline: none; }
   .map-stats-bar__value { font-size: 0.85rem; }
   .map-stats-bar__item { min-height: 60px; padding: 0.35rem; }
   .map-stats-bar__label { font-size: 0.6rem; }
-}
-
-@media (max-width: 420px) {
-  .scores-table { font-size: 0.68rem; }
-  .score-input { font-size: 16px !important; padding: 0.25rem 0.1rem; }
-  .scores-table th, .scores-table td { padding: 0.28rem 0.15rem; }
-
-  /* Also hide garrisons on very small screens */
-  .scores-table th:nth-child(6),
-  .scores-table td:nth-child(6) { display: none; }
-
-  .scores-table th:nth-child(1), .scores-table td:nth-child(1) { width: 6%; }
-  .scores-table th:nth-child(2), .scores-table td:nth-child(2) { width: 26%; }
-  .scores-table th:nth-child(3), .scores-table td:nth-child(3) { width: 18%; }
-  .scores-table th:nth-child(5), .scores-table td:nth-child(5) { width: 18%; }
-  .scores-table th:nth-child(9), .scores-table td:nth-child(9) { width: 18%; }
-  .scores-table th:nth-child(10), .scores-table td:nth-child(10) { width: 8%; }
 }
 
 /* Ranks */

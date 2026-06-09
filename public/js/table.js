@@ -171,14 +171,20 @@ function renderTable(entries, tbodyEl) {
       tr.classList.add("highlight");
     }
 
+    const stepHtml = (val) => `
+      <div class="score-stepper">
+        <button type="button" class="step-down" tabindex="-1" aria-label="Vähenda">−</button>
+        <button type="button" class="step-up" tabindex="-1" aria-label="Suurenda">+</button>
+      </div>`;
+
     tr.innerHTML = `
       <td class="pos-cell">${index + 1}</td>
       <td class="name-cell">${e.player_name}</td>
-      <td><input type="number" class="score-input" data-field="kills" min="0" value="${e.kills}" inputmode="numeric" pattern="[0-9]*"></td>
-      <td><input type="number" class="score-input" data-field="deaths" min="0" value="${e.deaths}" inputmode="numeric" pattern="[0-9]*"></td>
-      <td><input type="number" class="score-input" data-field="outposts" min="0" value="${e.outposts}" inputmode="numeric" pattern="[0-9]*"></td>
-      <td><input type="number" class="score-input" data-field="garrisons" min="0" value="${e.garrisons}" inputmode="numeric" pattern="[0-9]*"></td>
-      <td><input type="number" class="score-input" data-field="longest_kill" min="0" value="${e.longest_kill || 0}" inputmode="numeric" pattern="[0-9]*"></td>
+      <td><input type="number" class="score-input" data-field="kills" min="0" value="${e.kills}" inputmode="numeric" pattern="[0-9]*">${stepHtml(e.kills)}</td>
+      <td><input type="number" class="score-input" data-field="deaths" min="0" value="${e.deaths}" inputmode="numeric" pattern="[0-9]*">${stepHtml(e.deaths)}</td>
+      <td><input type="number" class="score-input" data-field="outposts" min="0" value="${e.outposts}" inputmode="numeric" pattern="[0-9]*">${stepHtml(e.outposts)}</td>
+      <td><input type="number" class="score-input" data-field="garrisons" min="0" value="${e.garrisons}" inputmode="numeric" pattern="[0-9]*">${stepHtml(e.garrisons)}</td>
+      <td><input type="number" class="score-input" data-field="longest_kill" min="0" value="${e.longest_kill || 0}" inputmode="numeric" pattern="[0-9]*">${stepHtml(e.longest_kill || 0)}</td>
       <td class="bonus-cell">${formatScoreNote(e)}</td>
       <td class="total-cell">${e.total}</td>
       <td><button class="btn btn-secondary" data-delete="${e.id || ''}" tabindex="-1">X</button></td>
@@ -186,6 +192,8 @@ function renderTable(entries, tbodyEl) {
 
     tbodyEl.appendChild(tr);
   });
+
+  ensureStepperDelegation(tbodyEl);
 }
 
 // Kogu tabelist andmed, et salvestamiseks payload teha
@@ -287,5 +295,31 @@ function recalcFromTable(tbodyEl) {
     }
 
     // NB! mitte mingit tbodyEl.appendChild(row) siin!
+  });
+}
+
+// Stepper buttons (+ / -) — attach once via delegation
+function ensureStepperDelegation(tbodyEl) {
+  if (tbodyEl.dataset.stepperHooked === '1') return;
+  tbodyEl.dataset.stepperHooked = '1';
+
+  tbodyEl.addEventListener('click', (e) => {
+    const stepBtn = e.target.closest('.step-up, .step-down');
+    if (!stepBtn) return;
+
+    const td = stepBtn.closest('td');
+    const input = td ? td.querySelector('.score-input') : null;
+    if (!input) return;
+
+    const delta = stepBtn.classList.contains('step-up') ? 1 : -1;
+    const min = parseInt(input.getAttribute('min') || '0', 10);
+    let val = parseInt(input.value || '0', 10);
+    if (isNaN(val)) val = 0;
+
+    val = Math.max(min, val + delta);
+    input.value = val;
+
+    // Trigger recalc
+    input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
   });
 }
