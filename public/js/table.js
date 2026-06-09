@@ -248,21 +248,21 @@ function renderTable(entries, tbodyEl) {
 
   if (isMobile()) {
     // Peida tabel, näita mobiilseid kaarte
-    tbodyEl.parentElement.style.display = "none";
+    tbodyEl.closest('.table-wrap').style.display = 'none';
     let container = document.getElementById("mobileCardsContainer");
     if (!container) {
       container = document.createElement("div");
       container.id = "mobileCardsContainer";
       container.className = "mobile-cards";
-      tbodyEl.parentElement.parentElement.insertBefore(container, tbodyEl.parentElement.nextSibling);
+      tbodyEl.closest('.table-wrap').parentElement.appendChild(container);
     }
-    container.style.display = "";
+    container.style.display = '';
     renderMobileCards(scored, maxLongest, container);
   } else {
     // Peida mobiilne, näita tabel
     const container = document.getElementById("mobileCardsContainer");
-    if (container) container.style.display = "none";
-    tbodyEl.parentElement.style.display = "";
+    if (container) container.style.display = 'none';
+    tbodyEl.closest('.table-wrap').style.display = '';
     renderDesktopTable(scored, maxLongest, tbodyEl);
   }
 }

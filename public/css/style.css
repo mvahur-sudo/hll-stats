@@ -275,7 +275,7 @@ button[tabindex="-1"] { outline: none; }
 }
 
 @media (max-width: 640px) {
-  .table-wrap { display: none; }  /* hide desktop table */
+  .table-wrap { display: none !important; }
   .mobile-cards {
     display: flex;
     flex-direction: column;
