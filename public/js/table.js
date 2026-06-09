@@ -85,7 +85,6 @@ function formatGameLabel(game) {
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
-//        second: "2-digit",
         hour12: false
       });
 
@@ -134,11 +133,102 @@ function calculateScores(entries, challengeValue) {
 );
 }
 
+// ---- Desktop (tabel) render ----
+function renderDesktopTable(scored, maxLongest, tbodyEl) {
+  tbodyEl.innerHTML = "";
+  scored.forEach((e, index) => {
+    const tr = document.createElement("tr");
+    tr.dataset.playerName = e.player_name;
+    if (e.id) tr.dataset.entryId = e.id;
+
+    if (index === 0) tr.classList.add("rank-1");
+    else if (index === 1) tr.classList.add("rank-2");
+    else if (index === 2) tr.classList.add("rank-3");
+
+    if (e.longest_kill === maxLongest && maxLongest > 0) {
+      tr.classList.add("highlight");
+    }
+
+    tr.innerHTML = `
+      <td class="pos-cell">${index + 1}</td>
+      <td class="name-cell">${e.player_name}</td>
+      <td><input type="number" class="score-input" data-field="kills" min="0" value="${e.kills}" inputmode="numeric" pattern="[0-9]*"></td>
+      <td><input type="number" class="score-input" data-field="deaths" min="0" value="${e.deaths}" inputmode="numeric" pattern="[0-9]*"></td>
+      <td><input type="number" class="score-input" data-field="outposts" min="0" value="${e.outposts}" inputmode="numeric" pattern="[0-9]*"></td>
+      <td><input type="number" class="score-input" data-field="garrisons" min="0" value="${e.garrisons}" inputmode="numeric" pattern="[0-9]*"></td>
+      <td><input type="number" class="score-input" data-field="longest_kill" min="0" value="${e.longest_kill || 0}" inputmode="numeric" pattern="[0-9]*"></td>
+      <td class="bonus-cell">${formatScoreNote(e)}</td>
+      <td class="total-cell">${e.total}</td>
+      <td><button class="btn btn-secondary" data-delete="${e.id || ''}" tabindex="-1">X</button></td>
+    `;
+    tbodyEl.appendChild(tr);
+  });
+}
+
+// ---- Mobile (card) render ----
+function renderMobileCards(scored, maxLongest, container) {
+  container.innerHTML = "";
+  scored.forEach((e, index) => {
+    const card = document.createElement("div");
+    card.className = "mobile-card";
+    card.dataset.playerName = e.player_name;
+    if (e.id) card.dataset.entryId = e.id;
+
+    if (index === 0) card.classList.add("rank-1");
+    else if (index === 1) card.classList.add("rank-2");
+    else if (index === 2) card.classList.add("rank-3");
+
+    if (e.longest_kill === maxLongest && maxLongest > 0) {
+      card.classList.add("highlight");
+    }
+
+    card.innerHTML = `
+      <div class="mobile-card__header">
+        <span class="mobile-card__pos">#${index + 1}</span>
+        <span class="mobile-card__name">${e.player_name}</span>
+        <span class="mobile-card__score">${e.total}<span class="mobile-card__score-label">pt</span></span>
+      </div>
+      <div class="mobile-card__fields">
+        <div class="mobile-card__field">
+          <label class="mobile-card__label">Kills</label>
+          <input type="number" class="score-input" data-field="kills" min="0" value="${e.kills}" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <div class="mobile-card__field">
+          <label class="mobile-card__label">Deaths</label>
+          <input type="number" class="score-input" data-field="deaths" min="0" value="${e.deaths}" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <div class="mobile-card__field">
+          <label class="mobile-card__label">OP</label>
+          <input type="number" class="score-input" data-field="outposts" min="0" value="${e.outposts}" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <div class="mobile-card__field">
+          <label class="mobile-card__label">Gar</label>
+          <input type="number" class="score-input" data-field="garrisons" min="0" value="${e.garrisons}" inputmode="numeric" pattern="[0-9]*">
+        </div>
+        <div class="mobile-card__field">
+          <label class="mobile-card__label">Longest</label>
+          <input type="number" class="score-input" data-field="longest_kill" min="0" value="${e.longest_kill || 0}" inputmode="numeric" pattern="[0-9]*">
+        </div>
+      </div>
+      <div class="mobile-card__footer">
+        <span class="mobile-card__bonus">${formatScoreNote(e)}</span>
+        <button class="btn btn-secondary" data-delete="${e.id || ''}" tabindex="-1">✕</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function isMobile() {
+  return window.matchMedia('(max-width: 640px)').matches;
+}
+
 // Joonista tabel entries põhjal
 function renderTable(entries, tbodyEl) {
-  tbodyEl.innerHTML = "";
-
   if (!entries || !entries.length) {
+    const container = document.getElementById("mobileCardsContainer");
+    if (container) container.innerHTML = "";
+    tbodyEl.innerHTML = "";
     const tr = document.createElement("tr");
     const td = document.createElement("td");
     td.colSpan = 10;
@@ -156,65 +246,119 @@ function renderTable(entries, tbodyEl) {
     0
   );
 
-  scored.forEach((e, index) => {
-    const tr = document.createElement("tr");
-    tr.dataset.playerName = e.player_name;
-    if (e.id) tr.dataset.entryId = e.id;
-
-    // medalikohad
-    if (index === 0) tr.classList.add("rank-1");
-    else if (index === 1) tr.classList.add("rank-2");
-    else if (index === 2) tr.classList.add("rank-3");
-
-    // pikim kill highlight
-    if (e.longest_kill === maxLongest && maxLongest > 0) {
-      tr.classList.add("highlight");
+  if (isMobile()) {
+    // Peida tabel, näita mobiilseid kaarte
+    tbodyEl.parentElement.style.display = "none";
+    let container = document.getElementById("mobileCardsContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "mobileCardsContainer";
+      container.className = "mobile-cards";
+      tbodyEl.parentElement.parentElement.insertBefore(container, tbodyEl.parentElement.nextSibling);
     }
-
-    tr.innerHTML = `
-      <td class="pos-cell">${index + 1}</td>
-      <td class="name-cell">${e.player_name}</td>
-      <td><input type="number" class="score-input" data-field="kills" min="0" value="${e.kills}" inputmode="numeric" pattern="[0-9]*"></td>
-      <td><input type="number" class="score-input" data-field="deaths" min="0" value="${e.deaths}" inputmode="numeric" pattern="[0-9]*"></td>
-      <td><input type="number" class="score-input" data-field="outposts" min="0" value="${e.outposts}" inputmode="numeric" pattern="[0-9]*"></td>
-      <td><input type="number" class="score-input" data-field="garrisons" min="0" value="${e.garrisons}" inputmode="numeric" pattern="[0-9]*"></td>
-      <td><input type="number" class="score-input" data-field="longest_kill" min="0" value="${e.longest_kill || 0}" inputmode="numeric" pattern="[0-9]*"></td>
-      <td class="bonus-cell">${formatScoreNote(e)}</td>
-      <td class="total-cell">${e.total}</td>
-      <td><button class="btn btn-secondary" data-delete="${e.id || ''}" tabindex="-1">X</button></td>
-    `;
-
-    tbodyEl.appendChild(tr);
-  });
+    container.style.display = "";
+    renderMobileCards(scored, maxLongest, container);
+  } else {
+    // Peida mobiilne, näita tabel
+    const container = document.getElementById("mobileCardsContainer");
+    if (container) container.style.display = "none";
+    tbodyEl.parentElement.style.display = "";
+    renderDesktopTable(scored, maxLongest, tbodyEl);
+  }
 }
 
-// Kogu tabelist andmed, et salvestamiseks payload teha
+// Kogu tabelist / mobiilikaartidest andmed, et salvestamiseks payload teha
 function collectTablePayloads(tbodyEl) {
+  if (isMobile()) {
+    const container = document.getElementById("mobileCardsContainer");
+    if (!container) return [];
+    const cards = container.querySelectorAll(".mobile-card");
+    const result = [];
+    cards.forEach(card => {
+      const nameEl = card.querySelector(".mobile-card__name");
+      const inputs = card.querySelectorAll(".score-input");
+      if (!nameEl || !inputs.length) return;
+      const player_name = nameEl.textContent.trim();
+      const data = { player_name };
+      inputs.forEach(inp => {
+        const field = inp.dataset.field;
+        data[field] = normalizeCount(inp.value);
+      });
+      result.push(data);
+    });
+    return result;
+  }
+
   const rows = [...tbodyEl.querySelectorAll("tr")];
   const result = [];
-
   rows.forEach(row => {
     const nameCell = row.querySelector(".name-cell");
     const inputs = row.querySelectorAll(".score-input");
-    if (!nameCell || !inputs.length) return; // placeholder row
+    if (!nameCell || !inputs.length) return;
 
     const player_name = nameCell.textContent.trim();
     const data = { player_name };
-
     inputs.forEach(inp => {
       const field = inp.dataset.field;
       const val = normalizeCount(inp.value);
       data[field] = val;
     });
-
     result.push(data);
   });
-
   return result;
 }
 
 // Recalc + sort + medalikohad live
 function recalcFromTable(tbodyEl) {
+  if (isMobile()) {
+    const container = document.getElementById("mobileCardsContainer");
+    if (!container) return;
+    const cards = container.querySelectorAll(".mobile-card");
+    const cardData = [];
+    cards.forEach(card => {
+      const nameEl = card.querySelector(".mobile-card__name");
+      const inputs = card.querySelectorAll(".score-input");
+      if (!nameEl || !inputs.length) return;
+      const player_name = nameEl.textContent.trim();
+      const data = { card, player_name };
+      inputs.forEach(inp => {
+        const field = inp.dataset.field;
+        data[field] = normalizeCount(inp.value);
+      });
+      cardData.push(data);
+    });
+    if (!cardData.length) return;
+
+    const challenge = normalizeChallenge(tbodyEl.dataset.challenge);
+    const maxLongest = cardData.reduce((m, d) => (d.longest_kill > m ? d.longest_kill : m), 0);
+    cardData.forEach(d => Object.assign(d, calculateScoreParts(d, maxLongest, challenge)));
+
+    const uniqueTotals = [...new Set(cardData.map(d => d.total))]
+      .filter(t => t !== 0)
+      .sort((a, b) => b - a);
+    const firstTotal = uniqueTotals[0];
+    const secondTotal = uniqueTotals[1];
+    const thirdTotal = uniqueTotals[2];
+
+    cards.forEach(c => c.classList.remove("rank-1", "rank-2", "rank-3", "highlight"));
+
+    cardData.forEach(d => {
+      const card = d.card;
+      const scoreEl = card.querySelector(".mobile-card__score");
+      if (scoreEl) scoreEl.innerHTML = `${d.total}<span class="mobile-card__score-label">pt</span>`;
+
+      const bonusEl = card.querySelector(".mobile-card__bonus");
+      if (bonusEl) bonusEl.innerHTML = formatScoreNote(d);
+
+      if (d.total === firstTotal && firstTotal !== undefined) card.classList.add("rank-1");
+      else if (secondTotal !== undefined && d.total === secondTotal) card.classList.add("rank-2");
+      else if (thirdTotal !== undefined && d.total === thirdTotal) card.classList.add("rank-3");
+
+      if (d.longest_kill === maxLongest && maxLongest > 0) card.classList.add("highlight");
+    });
+    return;
+  }
+
   const rows = [...tbodyEl.querySelectorAll("tr")];
   const rowData = [];
 
@@ -238,19 +382,15 @@ function recalcFromTable(tbodyEl) {
   if (!rowData.length) return;
 
   const challenge = normalizeChallenge(tbodyEl.dataset.challenge);
-
-  // leia max longest kill
   const maxLongest = rowData.reduce(
     (m, d) => (d.longest_kill > m ? d.longest_kill : m),
     0
   );
 
-  // arvuta punktid
   rowData.forEach(d => {
     Object.assign(d, calculateScoreParts(d, maxLongest, challenge));
   });
 
-  // leia unikaalsed skoorid, et teada kes on 1., 2., 3. koht
   const uniqueTotals = [...new Set(rowData.map(d => d.total))]
     .filter(t => t !== 0)
     .sort((a, b) => b - a);
@@ -259,12 +399,10 @@ function recalcFromTable(tbodyEl) {
   const secondTotal = uniqueTotals[1];
   const thirdTotal = uniqueTotals[2];
 
-  // puhasta klassid
   rows.forEach(r => {
     r.classList.remove("rank-1", "rank-2", "rank-3", "highlight");
   });
 
-  // uuenda iga rea total + klassid, aga ÄRA liiguta ridu
   rowData.forEach(d => {
     const row = d.row;
 
@@ -285,8 +423,5 @@ function recalcFromTable(tbodyEl) {
     if (d.longest_kill === maxLongest && maxLongest > 0) {
       row.classList.add("highlight");
     }
-
-    // NB! mitte mingit tbodyEl.appendChild(row) siin!
   });
 }
-

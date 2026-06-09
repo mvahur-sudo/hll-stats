@@ -267,130 +267,124 @@ button[tabindex="-1"] { outline: none; }
 }
 
 /* ============================================================
-   MOBILE: card-based entry layout (≤768px)
+   MOBILE CARD LAYOUT (≤640px)
    ============================================================ */
 
-/* Hide native table header & table layout */
-@media (max-width: 768px) {
-  .scores-table { min-width: 0; }
-  .scores-table thead { display: none; }
-  .scores-table tbody { display: flex; flex-direction: column; gap: 0.65rem; }
-  .scores-table tr {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0;
+.mobile-cards {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .table-wrap { display: none; }  /* hide desktop table */
+  .mobile-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .mobile-card {
     background: var(--bg-page);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    padding: 0.7rem;
+    padding: 0.8rem 0.9rem;
     box-shadow: var(--shadow-card);
   }
-  .scores-table td {
-    display: block;
-    border: none;
-    padding: 0;
-    text-align: left;
-  }
+  .mobile-card.rank-1 { border-color: rgba(250,204,21,0.5); }
+  .mobile-card.rank-2 { border-color: rgba(148,163,184,0.4); }
+  .mobile-card.rank-3 { border-color: rgba(244,114,182,0.35); }
+  .mobile-card.highlight { outline: 2px solid var(--accent-3); outline-offset: 2px; border-radius: var(--radius-lg); }
 
-  /* Positsioon + nimi + kustutusnupp — header rida */
-  .scores-table td.pos-cell {
-    font-size: 0.75rem;
+  /* Header: pos, name, score */
+  .mobile-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .mobile-card__pos {
+    font-size: 0.7rem;
     font-weight: 700;
     color: var(--accent);
-    margin-bottom: 0.15rem;
+    min-width: 22px;
   }
-  .scores-table td.name-cell {
-    font-size: 1rem;
+  .mobile-card__name {
+    flex: 1;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 0.5rem;
-  }
-
-  /* Numbrite sisestusread — üks rida per väli */
-  .scores-table td:has(.score-input) {
-    display: grid;
-    grid-template-columns: 80px 1fr auto;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.3rem 0;
-    border-bottom: 1px solid rgba(51,65,85,0.3);
-  }
-
-  /* Label enne input'i (pseudoelement) */
-  .scores-table td:nth-child(3)::before { content: "Kills"; }
-  .scores-table td:nth-child(4)::before { content: "Deaths"; }
-  .scores-table td:nth-child(5)::before { content: "OP"; }
-  .scores-table td:nth-child(6)::before { content: "Gar"; }
-  .scores-table td:nth-child(7)::before { content: "Longest (m)"; }
-
-  .scores-table td:nth-child(3)::before,
-  .scores-table td:nth-child(4)::before,
-  .scores-table td:nth-child(5)::before,
-  .scores-table td:nth-child(6)::before,
-  .scores-table td:nth-child(7)::before {
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
-
-  /* Inputid — suured, mugavad */
-  .score-input {
-    font-size: 16px !important;
-    padding: 0.42rem 0.45rem;
-    border-radius: var(--radius-md);
-    text-align: center;
-    width: 100%;
-    max-width: 80px;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-
-  /* Bonus/total rida */
-  .scores-table td.bonus-cell {
-    margin-top: 0.35rem;
-    text-align: center;
-  }
-  .bonus-tag, .penalty-tag { font-size: 0.75rem; padding: 0.2rem 0.55rem; }
-
-  .scores-table td.total-cell {
-    text-align: center;
-    font-size: 1.2rem;
+  .mobile-card__score {
+    font-size: 1.15rem;
     font-weight: 700;
-    padding: 0.45rem 0 0.15rem;
     color: var(--accent);
+    text-align: right;
   }
-  .scores-table td.total-cell::before {
-    content: "Score ";
-    font-size: 0.7rem;
+  .mobile-card__score-label {
+    font-size: 0.65rem;
     font-weight: 500;
     color: var(--text-dim);
+    margin-left: 2px;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
   }
 
-  /* Kustutusnupp */
-  .scores-table td:last-child {
+  /* Fields grid: labels on top, inputs below */
+  .mobile-card__fields {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem 0.4rem;
+  }
+  .mobile-card__field {
     display: flex;
-    justify-content: flex-end;
-    margin-top: 0.3rem;
+    flex-direction: column;
+    gap: 0.2rem;
+    align-items: center;
   }
-  .scores-table td:last-child .btn {
-    font-size: 0.75rem;
-    padding: 0.2rem 0.65rem;
+  .mobile-card__label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .mobile-card__field .score-input {
+    font-size: 16px !important;
+    padding: 0.4rem 0.2rem;
+    text-align: center;
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-md);
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--bg);
+    border: 1px solid var(--border-dim);
+    color: var(--text);
   }
 
-  /* Peida tabeli table-layout reeglid mobile'il */
-  .scores-table th, .scores-table td { width: auto !important; }
+  /* Footer: bonus tag + delete */
+  .mobile-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.55rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid var(--border);
+  }
+  .mobile-card__bonus {
+    font-size: 0.7rem;
+  }
+  .mobile-card__footer .btn {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.6rem;
+  }
 
-  /* Ranks in cards */
-  .scores-table tr.rank-1 { border-color: rgba(250,204,21,0.5); }
-  .scores-table tr.rank-2 { border-color: rgba(148,163,184,0.4); }
-  .scores-table tr.rank-3 { border-color: rgba(244,114,182,0.35); }
-  .scores-table tr.highlight { outline: 2px solid var(--accent-3); outline-offset: 0px; }
+  .bonus-tag, .penalty-tag { font-size: 0.7rem; padding: 0.15rem 0.45rem; }
 
-  /* General mobile */
+  /* General mobile tweaks */
   .btn { padding: 0.35rem 0.8rem; font-size: 0.85rem; }
   .save-bar { align-items: flex-start; flex-direction: column; }
   .save-bar .save-hint { font-size: 0.75rem; }
@@ -412,6 +406,12 @@ button[tabindex="-1"] { outline: none; }
   .map-stats-bar__value { font-size: 0.85rem; }
   .map-stats-bar__item { min-height: 60px; padding: 0.35rem; }
   .map-stats-bar__label { font-size: 0.6rem; }
+}
+
+/* --- Desktop: table stays as-is --- */
+@media (min-width: 641px) {
+  .table-wrap { display: block; }
+  .mobile-cards { display: none; }
 }
 
 /* Ranks */
