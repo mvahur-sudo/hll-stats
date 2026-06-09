@@ -147,96 +147,136 @@ app.get('/login', (req, res) => {
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
-      padding: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #0b1120 0, #020617 45%, #000 100%);
-      color: #e5e7eb;
+      background: #0f172a;
+      color: #e2e8f0;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .login-card {
-      background: #020617;
-      border-radius: 0.9rem;
-      border: 1px solid #1f2937;
-      box-shadow: 0 16px 40px rgba(15,23,42,0.7);
-      padding: 1.5rem 1.75rem;
+    .login-wrapper {
       width: 100%;
-      max-width: 360px;
+      max-width: 380px;
+      padding: 1rem;
     }
-    h1 {
-      margin: 0 0 0.75rem;
-      font-size: 1.25rem;
-      text-align: center;
+    .login-card {
+      background: #1e293b;
+      border-radius: 1rem;
+      border: 1px solid #334155;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+      padding: 2rem 1.75rem;
     }
-    p {
-      margin: 0 0 0.75rem;
-      font-size: 0.85rem;
-      color: #9ca3af;
+    .login-logo {
       text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .login-logo .icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.25rem;
+    }
+    .login-logo h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: -0.01em;
+    }
+    .login-logo p {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 0.2rem;
+    }
+    .error {
+      font-size: 0.8rem;
+      color: #fca5a5;
+      background: rgba(220,38,38,0.12);
+      border: 1px solid rgba(248,113,113,0.25);
+      border-radius: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      text-align: center;
+      margin-bottom: 1rem;
     }
     form {
-      margin-top: 0.5rem;
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
     }
-    label {
-      font-size: 0.8rem;
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
     }
-    input[type="password"] {
+    .field label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+    }
+    .field input {
       width: 100%;
-      padding: 0.4rem 0.6rem;
-      border-radius: 0.4rem;
-      border: 1px solid #374151;
-      background: #020617;
-      color: #e5e7eb;
-      font-size: 0.9rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 0.5rem;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 1rem;
+      transition: border-color 0.15s ease;
+    }
+    .field input:focus {
+      outline: none;
+      border-color: #2dd4bf;
+      box-shadow: 0 0 0 2px rgba(45,212,191,0.15);
     }
     .btn {
       border-radius: 999px;
       border: 1px solid transparent;
-      padding: 0.4rem 0.9rem;
-      font-size: 0.9rem;
+      padding: 0.65rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
       cursor: pointer;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
       width: 100%;
       background: linear-gradient(135deg, #2dd4bf, #22c55e);
-      color: #020617;
-      border-color: #064e3b;
+      color: #0f172a;
+      border-color: #0f766e;
       margin-top: 0.25rem;
+      transition: filter 0.15s ease;
     }
-    .btn:hover {
-      filter: brightness(1.05);
-    }
-    .error {
-      margin-bottom: 0.5rem;
-      font-size: 0.8rem;
-      color: #fecaca;
-      background: rgba(127,29,29,0.25);
-      border-radius: 0.4rem;
-      padding: 0.35rem 0.5rem;
+    .btn:hover { filter: brightness(1.1); }
+    .btn:active { filter: brightness(0.95); }
+    .version-banner {
       text-align: center;
+      font-size: 0.68rem;
+      color: #64748b;
+      margin-top: 1.25rem;
+      opacity: 0.7;
+    }
+    @media (max-width: 420px) {
+      .login-wrapper { padding: 0.5rem; }
+      .login-card { padding: 1.5rem 1.25rem; }
     }
   </style>
 </head>
 <body>
+  <div class="login-wrapper">
   <div class="login-card">
-    <h1>HLL stats</h1>
-    <p>Sisesta ligipääsu kood</p>
+    <div class="login-logo">
+      <div class="icon">🎯</div>
+      <h1>HLL Stats</h1>
+      <p>Squad statistika</p>
+    </div>
     ${error ? '<div class="error">Vale kood, proovi uuesti.</div>' : ''}
     <form method="POST" action="/login">
-      <label for="code">Kood</label>
-      <input id="code" name="code" type="password" autocomplete="off" autofocus>
+      <div class="field">
+        <label for="code">Ligipääsu kood</label>
+        <input id="code" name="code" type="password" placeholder="Sisesta kood" autocomplete="off" autofocus>
+      </div>
       <button class="btn" type="submit">Sisene</button>
     </form>
     <div class="version-banner">v${APP_VERSION}</div>
+  </div>
   </div>
 </body>
 </html>`);
