@@ -5,6 +5,15 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const PORT = process.env.PORT || 3124;
 
+// Loe versioon package.json'ist
+let APP_VERSION = '0.0.0';
+try {
+  const pkg = require('./package.json');
+  APP_VERSION = pkg.version || '0.0.0';
+} catch (e) {
+  console.error('Could not read version from package.json');
+}
+
 // Ühine kood, millega lehele pääseb
 const ACCESS_CODE = 'smile';
 
@@ -1473,7 +1482,11 @@ app.get('/api/stats/player/:name', (req, res) => {
   });
 });
 
+app.get('/api/version', (req, res) => {
+  res.json({ version: APP_VERSION });
+});
+
 // --- käivitus ---
 app.listen(PORT, () => {
-  console.log(`Hell Let Loose stats server kuulab porti ${PORT}`);
+  console.log(`Hell Let Loose stats server v${APP_VERSION} kuulab porti ${PORT}`);
 });

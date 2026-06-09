@@ -1115,6 +1115,18 @@ async function openPlayerModal(playerName, windowKey) {
    INITIALISEERI RAKENDUS
    =========================== */
 (async () => {
+  // Versioonibänner
+  const banner = document.getElementById('versionBanner');
+  if (banner) {
+    try {
+      const resp = await fetch('/api/version');
+      const data = await resp.json();
+      banner.textContent = `v${data.version || '0.0.0'}`;
+    } catch (e) {
+      banner.textContent = '';
+    }
+  }
+
   if (typeof initMapSelect === "function" && mapSelect) {
     initMapSelect(mapSelect);
   }
